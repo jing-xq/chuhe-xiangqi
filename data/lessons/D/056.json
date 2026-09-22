@@ -1,0 +1,1 @@
+{"fen":"2baka3/5r3/4b4/p3p2n1/6n1p/2B6/P3P1N2/9/5RC2/2BAKA3 b - - 0 0","win":"*","moves":[{"m":"f8f3","cn":"车6进5","ch":[{"m":"f1f3","cn":"车四进二","ch":[{"m":"g5f3","cn":"马7进6","ch":[{"m":"g1f1","cn":"炮三平四","ch":[{"m":"h6g4","cn":"马8进7","c":"黑多兵胜地"}]}]}]}]}],"title":"056","category":"D","file":"D/056.json","plies":5,"vars":0,"annotated":true}

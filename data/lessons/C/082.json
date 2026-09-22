@@ -1,0 +1,1 @@
+{"fen":"5n3/3ka4/3a5/8p/5CC1c/9/9/3A5/5p3/4KA3 w - - 0 0","win":"*","moves":[{"m":"f5f8","cn":"炮四进三","ch":[{"m":"d8d9","cn":"将4退4","ch":[{"m":"g5g9","cn":"炮三进四","ch":[{"m":"f9d8","cn":"马6进4","ch":[{"m":"f8f9","cn":"炮四进一"}]}]}]}]}],"title":"B双炮类-第1局","category":"C","file":"C/082.json","plies":5,"vars":0,"annotated":false}

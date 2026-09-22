@@ -1,0 +1,1 @@
+{"fen":"4ka3/8R/9/7N1/9/9/9/9/4A4/crBAK4 w - - 0 1","win":"*","moves":[{"m":"h6f7","cn":"马二进四","ch":[{"m":"e9d9","cn":"将5退4","ch":[{"m":"i8d8","cn":"车一平六","c":"杀！(红胜)"}]}]}],"title":"八角马1","category":"A","file":"A/007.json","plies":3,"vars":0,"annotated":true}

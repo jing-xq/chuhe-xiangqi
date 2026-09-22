@@ -1,0 +1,1 @@
+{"fen":"r3ka3/4a4/4R4/pR2C2rp/9/2P1P1P2/P3c3P/N3K4/9/2B2A3 w - - 0 0","win":"*","moves":[{"m":"e7e8","cn":"车五进一","ch":[{"m":"e9e8","cn":"将5进5","ch":[{"m":"e6e3","cn":"炮五退三","c":"红胜"}]}]}],"title":"399","category":"D","file":"D/224.json","plies":3,"vars":0,"annotated":true}

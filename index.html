@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>象棋教学</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">🏮 象棋教学</div>
+  <nav class="view-nav">
+    <button data-view="lessons" class="nav-btn active">📖 学棋课程</button>
+    <button data-view="guide" class="nav-btn">🌱 新手入门</button>
+    <button data-view="traps" class="nav-btn">🗡️ 飞刀骗招</button>
+    <button data-view="play" class="nav-btn">⚔️ 人机对弈</button>
+    <button data-view="games" class="nav-btn">🗂️ 我的棋谱</button>
+    <button data-view="coach" class="nav-btn">🤖 象棋私教</button>
+  </nav>
+  <div class="header-right">
+    <span id="engine-status" class="engine-status" title="内置引擎状态">引擎：…</span>
+    <span id="progress-summary" class="progress-summary"></span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <input id="search" type="search" placeholder="搜索课程名称…">
+    <div id="cat-list" class="cat-list"></div>
+  </aside>
+
+  <main>
+    <div id="view-lessons">
+      <div id="welcome-banner" class="welcome-banner hidden">
+        👋 第一次学象棋？建议先去顶部「🌱 新手入门」花 10 分钟学会走子，再回来练杀法！
+      </div>
+      <div class="lesson-bar">
+      <div class="crumbs">
+        <span id="crumb-cat"></span>
+        <h2 id="lesson-title">请选择课程</h2>
+      </div>
+      <div class="mode-tabs">
+        <button id="mode-teach" class="tab active">讲棋</button>
+        <button id="mode-quiz" class="tab">练习</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="board-col">
+        <canvas id="board"></canvas>
+        <div class="board-buttons">
+          <button id="btn-start" title="回到开局">⏮</button>
+          <button id="btn-prev" title="上一步 (←)">◀</button>
+          <button id="btn-auto" title="自动播放 (空格)">▶</button>
+          <button id="btn-next" title="下一步 (→)">▶|</button>
+          <button id="btn-end" title="走到末尾">⏭</button>
+          <select id="speed" title="播放速度">
+            <option value="300">快</option>
+            <option value="600" selected>中</option>
+            <option value="1100">慢</option>
+          </select>
+          <button id="btn-flip" title="翻转棋盘">⇅</button>
+        </div>
+      </div>
+
+      <div class="side-col">
+        <div id="quiz-panel" class="quiz-panel hidden">
+          <div id="quiz-feedback" class="quiz-feedback">轮到你了，走出正着！</div>
+          <div class="quiz-buttons">
+            <button id="btn-hint">💡 提示</button>
+            <button id="btn-answer">显示答案</button>
+            <button id="btn-reset">↻ 重来</button>
+          </div>
+        </div>
+
+        <div id="var-panel" class="var-panel"></div>
+
+        <div class="tabs">
+          <button id="tab-moves" class="tab active">着法</button>
+          <button id="tab-comment" class="tab">评注 <span id="comment-badge" class="badge hidden"></span></button>
+        </div>
+        <div id="movelist" class="movelist"></div>
+        <div id="comment" class="comment hidden"></div>
+      </div>
+    </div>
+    </div><!-- /view-lessons -->
+
+    <div id="view-guide" class="view-page hidden"></div>
+    <div id="view-traps" class="view-page hidden"></div>
+    <div id="view-play" class="view-page hidden"></div>
+    <div id="view-games" class="view-page hidden"></div>
+    <div id="view-coach" class="view-page hidden"></div>
+  </main>
+</div>
+
+<script src="js/rules.js"></script>
+<script src="js/notation.js"></script>
+<script src="js/md.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/board.js"></script>
+<script src="js/player.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/annotated.js"></script>
+<script src="js/coachbrain.js"></script>
+<script src="js/games.js"></script>
+<script src="js/play.js"></script>
+<script src="js/guide.js"></script>
+<script src="js/traps.js"></script>
+<script src="js/coach.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

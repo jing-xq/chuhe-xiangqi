@@ -1,0 +1,1 @@
+{"fen":"2bak4/4a3n/4b4/4pP1rp/2n2cp2/2Nc3C1/9/3NB4/2C1A2R1/4KA3 w - - 0 0","win":"*","moves":[{"m":"d2b3","cn":"马六进八","ch":[{"m":"d4f4","cn":"炮4平6","ch":[{"m":"b3c5","cn":"马八进七","ch":[{"m":"e7c5","cn":"象5进3","ch":[{"m":"c4e3","cn":"马七退五","c":"红胜\r\n\r\n狼牙山人注：红炮闷攻，黑炮丢矣！"}]}]}]}]}],"title":"390","category":"D","file":"D/220.json","plies":5,"vars":0,"annotated":true}

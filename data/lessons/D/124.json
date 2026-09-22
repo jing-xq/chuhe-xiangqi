@@ -1,0 +1,1 @@
+{"fen":"2Rak1b2/4a4/r3n3c/p1p1n3p/3Rp4/P3cp3/6r1P/N2CC1N2/4A4/2BK1AB2 b - - 0 0","win":"*","moves":[{"m":"a7d7","cn":"车1平4","ch":[{"m":"d2d7","cn":"炮六进五","ch":[{"m":"i7d7","cn":"炮9平4","ch":[{"m":"e2d2","cn":"炮五平六","ch":[{"m":"e6c5","cn":"前马进3","c":"黑胜"}]}]}]}]}],"title":"124","category":"D","file":"D/124.json","plies":5,"vars":0,"annotated":true}

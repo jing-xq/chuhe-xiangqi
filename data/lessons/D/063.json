@@ -1,0 +1,1 @@
+{"fen":"2r2k1r1/9/9/8R/9/P8/9/4B4/c8/1R1AKA3 w - - 0 0","win":"*","moves":[{"m":"b0b6","cn":"车八进六","ch":[{"m":"a1a0","cn":"炮1进1","ch":[{"m":"e2c0","cn":"相五退七","ch":[{"m":"c9e9","cn":"车3平5","ch":[{"m":"b6e6","cn":"车八平五","c":"红胜"}]}]}]}]}],"title":"063","category":"D","file":"D/063.json","plies":5,"vars":0,"annotated":true}

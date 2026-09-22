@@ -1,0 +1,1 @@
+{"fen":"2bc1k3/4n4/c3b4/5C3/9/9/9/5R3/4A1p2/3A1K3 w - - 0 0","win":"*","moves":[{"m":"f6b6","cn":"炮四平八","ch":[{"m":"f9e9","cn":"将6退5","ch":[{"m":"f2f9","cn":"车四进七","ch":[{"m":"d9f9","cn":"炮4平6","ch":[{"m":"b6b9","cn":"炮八进三"}]}]}]}]}],"title":"A附局3","category":"C","file":"C/547.json","plies":5,"vars":0,"annotated":false}

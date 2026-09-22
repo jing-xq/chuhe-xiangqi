@@ -1,0 +1,1 @@
+{"fen":"9/5k3/5a3/9/p7P/9/Pn1R1r3/4p4/4A4/3K1C3 b - - 0 0","win":"*","moves":[{"m":"b3d4","cn":"马2退4","ch":[{"m":"d0d1","cn":"帅六进六","ch":[{"m":"f8e8","cn":"将6退5","c":"黑胜"}]}]}],"title":"038","category":"D","file":"D/038.json","plies":3,"vars":0,"annotated":true}

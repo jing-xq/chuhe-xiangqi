@@ -1,0 +1,1 @@
+{"fen":"1rbakab2/9/n8/p5p1p/9/P1Rn2P2/2P5P/R1r1B4/8C/2NAK1B2 w - - 0 0","win":"*","moves":[{"m":"c4d4","cn":"车七平六","c":"红胜","ch":[{"m":"c2a2","cn":"车3平1","ch":[{"m":"i1e1","cn":"炮一平五","ch":[{"m":"c9e7","cn":"象3进5","ch":[{"m":"e2c4","cn":"相五进七"}]}]}]}]}],"title":"410","category":"D","file":"D/227.json","plies":5,"vars":0,"annotated":true}

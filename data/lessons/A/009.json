@@ -1,0 +1,1 @@
+{"fen":"2b1kaR2/4a4/9/4R2N1/9/9/9/4B4/3rA4/2B1KA1rc w - - 0 1","win":"*","moves":[{"m":"h6f7","cn":"马二进四","ch":[{"m":"e9d9","cn":"将5退4","ch":[{"m":"g9f9","cn":"车三平四","ch":[{"m":"e8f9","cn":"士5退6","ch":[{"m":"e6e9","cn":"车五进三","c":"杀！(红胜)"}]}]}]}]}],"title":"八角马3","category":"A","file":"A/009.json","plies":5,"vars":0,"annotated":true}

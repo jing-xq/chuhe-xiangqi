@@ -1,0 +1,1 @@
+{"fen":"2raka3/9/1nc1c1n1b/pC2p3p/2bR2p2/9/PN2P1P1P/B3C1N2/9/3AKAB2 w - - 0 0","win":"*","moves":[{"m":"b6c6","cn":"炮八平七","ch":[{"m":"c9b9","cn":"车3平2","ch":[{"m":"d5d7","cn":"车六进二","ch":[{"m":"c7c8","cn":"炮3退1","ch":[{"m":"e2b2","cn":"炮五平八","c":"红胜"}]}]}]}]}],"title":"426","category":"D","file":"D/237.json","plies":5,"vars":0,"annotated":true}

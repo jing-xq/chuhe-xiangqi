@@ -1,0 +1,1 @@
+{"fen":"c3ka3/4ac3/2C1b4/p1R1p3p/6p2/9/P3P1P1P/3nC4/1r2A4/2BA1KBN1 b - - 0 0","win":"*","moves":[{"m":"a9c9","cn":"炮1平3","c":"黑胜","ch":[{"m":"c7a7","cn":"炮七平九","ch":[{"m":"c9c0","cn":"炮3进9","ch":[{"m":"f0f1","cn":"帅四进四","ch":[{"m":"e8f7","cn":"士5进6"}]}]}]}]}],"title":"522","category":"D","file":"D/292.json","plies":5,"vars":0,"annotated":true}

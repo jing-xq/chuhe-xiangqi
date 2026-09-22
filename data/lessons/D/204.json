@@ -1,0 +1,1 @@
+{"fen":"3kc1R2/4a4/b8/p7p/6p2/5p3/P5P1P/3ABCN2/9/1crAK4 b - - 0 0","win":"*","moves":[{"m":"c0c1","cn":"车3退1","ch":[{"m":"d0e1","cn":"后仕进五","ch":[{"m":"e8f9","cn":"士5退6","c":"黑胜\r\n\r\n狼牙山人注：黑退士要杀，红必丢车！"}]}]}],"title":"343","category":"D","file":"D/204.json","plies":3,"vars":0,"annotated":true}

@@ -1,0 +1,1 @@
+{"fen":"2bk1a3/4a4/4cc3/2N1C4/9/9/9/4B1n2/5p3/C3K1B2 w - - 0 0","win":"*","moves":[{"m":"c6b8","cn":"马七进八","ch":[{"m":"d9e9","cn":"将4退5","ch":[{"m":"a0a9","cn":"炮九进九"}]}]}],"title":"A双炮马类-定式02","category":"C","file":"C/086.json","plies":3,"vars":0,"annotated":false}

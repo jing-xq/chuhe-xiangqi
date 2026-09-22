@@ -1,0 +1,1 @@
+{"fen":"2rak1b2/4a4/R1c1c1n2/p3p1p1p/3N1r3/6P2/P3P3P/1C2C4/3R5/2BAKAB2 w - - 0 0","win":"*","moves":[{"m":"a7c7","cn":"车九平七","ch":[{"m":"f5d5","cn":"车6平4","ch":[{"m":"c7e7","cn":"车七平五","ch":[{"m":"d5d1","cn":"车4进4","ch":[{"m":"e7g7","cn":"车五平三","c":"红胜"}]}]}]}]}],"title":"050","category":"D","file":"D/050.json","plies":5,"vars":0,"annotated":true}

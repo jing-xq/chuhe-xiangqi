@@ -1,0 +1,1 @@
+{"fen":"2bakaR2/9/4cP3/4R3p/4p4/1n7/9/9/c3A4/2rAK4 w - - 0 0","win":"*","moves":[{"m":"g9f9","cn":"车三平四","ch":[{"m":"e9f9","cn":"将5退6","ch":[{"m":"e6i6","cn":"车五平一","c":"红胜"}]}]}],"title":"257","category":"D","file":"D/167.json","plies":3,"vars":0,"annotated":true}

@@ -1,0 +1,1 @@
+{"fen":"2Pn1nC1C/3k1c3/3a1a3/9/9/9/9/9/4K4/9 w - - 0 0","win":"*","moves":[{"m":"g9g8","cn":"炮三退一","ch":[{"m":"d7e8","cn":"士4退5","ch":[{"m":"i9i7","cn":"炮一退二","ch":[{"m":"f9h8","cn":"马6进8","ch":[{"m":"i7h7","cn":"炮一平二","c":"红胜"}]}]}]}]}],"title":"052","category":"B","file":"B/051.json","plies":5,"vars":0,"annotated":true}

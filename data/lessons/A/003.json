@@ -1,0 +1,1 @@
+{"fen":"2b1kab2/4aP1R1/5c3/5R3/6r2/9/9/4B4/4A4/2BAK4 w - - 0 1","win":"*","moves":[{"m":"f6c6","cn":"车四平七","ch":[{"m":"c9e7","cn":"象3进5","ch":[{"m":"c6e6","cn":"车七平五","c":"攻击中象,红方亦胜。"}]}]}],"title":"三车闹士","category":"A","file":"A/003.json","plies":3,"vars":0,"annotated":true}

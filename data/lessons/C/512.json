@@ -1,0 +1,1 @@
+{"fen":"3k5/4a4/1R1a5/7N1/2p6/9/9/9/2r6/4K4 w - - 0 0","win":"*","moves":[{"m":"h6f7","cn":"马二进四","ch":[{"m":"e8f7","cn":"士5进6","ch":[{"m":"b7d7","cn":"车八平六"}]}]}],"title":"A车马类-定式01","category":"C","file":"C/512.json","plies":3,"vars":0,"annotated":false}

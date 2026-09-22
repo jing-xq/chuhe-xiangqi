@@ -1,0 +1,1 @@
+{"fen":"2b1ka3/4a4/4b1c2/p2r5/8p/2B6/P7P/2n1B1N2/4AR3/2C1KA3 b - - 0 0","win":"*","moves":[{"m":"e7g5","cn":"象5进7","ch":[{"m":"f1f5","cn":"车四进四","ch":[{"m":"g7g2","cn":"炮7进5","c":"黑胜"}]}]}],"title":"102","category":"D","file":"D/102.json","plies":3,"vars":0,"annotated":true}

@@ -1,0 +1,1 @@
+{"fen":"2b2k3/5c3/cC7/9/9/9/9/3C5/4A4/4K4 w - - 0 0","win":"*","moves":[{"m":"b7b9","cn":"炮八进二","ch":[{"m":"c9e7","cn":"象3进5","ch":[{"m":"d2d9","cn":"炮六进七","ch":[{"m":"e7c9","cn":"象5退3","ch":[{"m":"d9d8","cn":"炮六退一"}]}]}]}]}],"title":"A双炮类-第00局简例","category":"C","file":"C/081.json","plies":5,"vars":0,"annotated":false}

@@ -1,0 +1,1 @@
+{"fen":"3ak4/4a4/9/7N1/9/4R4/9/9/1n1rAp3/4KA3 w - - 0 1","win":"*","moves":[{"m":"h6g8","cn":"马二进三","ch":[{"m":"e9f9","cn":"将5退6","ch":[{"m":"e4f4","cn":"车五平四","c":"杀！(红胜)"}]}]}],"title":"卧槽马1","category":"A","file":"A/012.json","plies":3,"vars":0,"annotated":true}

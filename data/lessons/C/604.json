@@ -1,0 +1,1 @@
+{"fen":"3ak4/4a4/1N2b4/9/9/9/9/3A3c1/C3K2n1/2BA2B2 w - - 0 0","win":"*","moves":[{"m":"a1a9","cn":"炮九进八","ch":[{"m":"e7c9","cn":"象5退3","ch":[{"m":"b7c9","cn":"马八进七","ch":[{"m":"e9f9","cn":"将5退6","ch":[{"m":"c9d7","cn":"马七退六"}]}]}]}]}],"title":"A马炮类-定式01","category":"C","file":"C/604.json","plies":5,"vars":0,"annotated":false}

@@ -1,0 +1,1 @@
+{"fen":"2bak4/4a3n/4bc3/p1P5p/2n3r2/2R1C4/P3N1c1P/2C6/9/2BAKABN1 b - - 0 0","win":"*","moves":[{"m":"f7f4","cn":"炮6进3","ch":[{"m":"e4e8","cn":"炮五进四","ch":[{"m":"f4f3","cn":"炮6进1","ch":[{"m":"c4f4","cn":"车七平四","ch":[{"m":"f3a3","cn":"炮6平1"}]}]}]}]}],"title":"083","category":"D","file":"D/083.json","plies":5,"vars":0,"annotated":false}

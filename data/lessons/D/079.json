@@ -1,0 +1,1 @@
+{"fen":"3ak1b2/4a4/4b4/p7p/3Np4/1R1n2B1P/P6c1/4C2C1/2r1A4/2cK1A3 b - - 0 0","win":"*","moves":[{"m":"d4f3","cn":"马4进6","ch":[{"m":"h2h1","cn":"炮二退一","ch":[{"m":"c1c5","cn":"车3退4","c":"红胜"}]}]}],"title":"079","category":"D","file":"D/079.json","plies":3,"vars":0,"annotated":true}

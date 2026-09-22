@@ -1,0 +1,1 @@
+{"fen":"9/4k4/5RN2/9/9/9/9/4B4/4r1r2/5KB2 w - - 0 0","win":"*","moves":[{"m":"f7c7","cn":"车四平七","ch":[{"m":"e8d8","cn":"将5退4","ch":[{"m":"g7f9","cn":"马三进四","ch":[{"m":"d8e8","cn":"将4退5","ch":[{"m":"c7e7","cn":"车七平五"}]}]}]}]}],"title":"A车马类-定式03","category":"C","file":"C/514.json","plies":5,"vars":0,"annotated":false}

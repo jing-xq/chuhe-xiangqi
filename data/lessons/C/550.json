@@ -1,0 +1,1 @@
+{"fen":"2ba5/4ak3/4b4/5C3/2p6/6R2/9/B8/4r2p1/5K3 w - - 0 0","win":"*","moves":[{"m":"g4f4","cn":"车三平四","ch":[{"m":"f8f9","cn":"将6退6","ch":[{"m":"f6e6","cn":"炮四平五","ch":[{"m":"f9e9","cn":"将6退5","ch":[{"m":"f4f9","cn":"车四进五"}]}]}]}]}],"title":"A附局6","category":"C","file":"C/550.json","plies":5,"vars":0,"annotated":false}

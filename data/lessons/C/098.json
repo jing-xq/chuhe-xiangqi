@@ -1,0 +1,1 @@
+{"fen":"9/3kaP3/3ab4/4R4/3Rp4/9/7rc/4B4/4p4/5KB2 w - - 0 0","win":"*","moves":[{"m":"f8e8","cn":"兵四平五","ch":[{"m":"d8e8","cn":"将4退5","ch":[{"m":"e6e7","cn":"车五进一","ch":[{"m":"e8e7","cn":"将5进5","ch":[{"m":"d5e5","cn":"车六平五"}]}]}]}]}],"title":"B双车兵类-第01局","category":"C","file":"C/098.json","plies":5,"vars":0,"annotated":false}

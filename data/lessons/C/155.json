@@ -1,0 +1,1 @@
+{"fen":"2b2k3/1R2a2R1/4ba3/4C4/9/9/9/4B3n/6r2/2B2K2c w - - 0 0","win":"*","moves":[{"m":"h8f8","cn":"车二平四","ch":[{"m":"f9e9","cn":"将6退5","ch":[{"m":"b8e8","cn":"车八平五","ch":[{"m":"f7e8","cn":"士6退5","ch":[{"m":"f8f9","cn":"车四进一"}]}]}]}]}],"title":"B双车炮类-第01局","category":"C","file":"C/155.json","plies":5,"vars":0,"annotated":false}

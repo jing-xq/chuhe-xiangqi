@@ -1,0 +1,1 @@
+{"fen":"2bak4/1C2a1n2/2R1br3/4p4/9/2P6/9/2C1B4/4A4/4KAB1c w - - 0 1","win":"*","moves":[{"m":"c7e7","cn":"车七平五","ch":[{"m":"f7e7","cn":"车6平5","ch":[{"m":"c2c9","cn":"炮七进七","c":"闷宫杀!"}]}]}],"title":"闷宫2","category":"A","file":"A/039.json","plies":3,"vars":0,"annotated":true}

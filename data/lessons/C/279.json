@@ -1,0 +1,1 @@
+{"fen":"9/3k5/2Pa1a3/9/9/9/9/6C2/9/4K4 w - - 0 0","win":"*","moves":[{"m":"c7c8","cn":"兵七进一","ch":[{"m":"d8d9","cn":"将4退4","ch":[{"m":"c8c9","cn":"兵七进一","ch":[{"m":"d9d8","cn":"将4进4","ch":[{"m":"g2g8","cn":"炮三进六"}]}]}]}]}],"title":"B炮兵类类-第1局","category":"C","file":"C/279.json","plies":5,"vars":0,"annotated":false}

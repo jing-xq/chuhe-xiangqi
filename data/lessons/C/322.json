@@ -1,0 +1,1 @@
+{"fen":"3ak4/4a1R2/4b4/6N2/1r2N4/9/9/9/5p3/4K4 w - - 0 0","win":"*","moves":[{"m":"g8g9","cn":"车三进一","ch":[{"m":"e7g9","cn":"象5退7","ch":[{"m":"e5d7","cn":"马五进六","ch":[{"m":"e9f9","cn":"将5退6","ch":[{"m":"g6h8","cn":"马三进二"}]}]}]}]}],"title":"A车双马类-定式01","category":"C","file":"C/322.json","plies":5,"vars":0,"annotated":false}

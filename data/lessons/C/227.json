@@ -1,0 +1,1 @@
+{"fen":"5ab2/8R/3a1k3/4RcN2/2b6/9/9/4B4/3p1r3/4K4 w - - 0 0","win":"*","moves":[{"m":"i8f8","cn":"车一平四","ch":[{"m":"f6f8","cn":"炮6退2","ch":[{"m":"e6e7","cn":"车五进一","ch":[{"m":"c5e7","cn":"象3退5","ch":[{"m":"g6e5","cn":"马三退五"}]}]}]}]}],"title":"A双车马类-定式02","category":"C","file":"C/227.json","plies":5,"vars":0,"annotated":false}

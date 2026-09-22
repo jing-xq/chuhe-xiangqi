@@ -1,0 +1,1 @@
+{"fen":"2ba1kb2/4a4/6n2/p1p1n1p1p/2r1r4/3Nc1P2/P3R3P/B2RB1N2/4A4/1C2KA3 w - - 0 0","win":"*","moves":[{"m":"d4b3","cn":"马六退八","ch":[{"m":"e4b4","cn":"炮5平2","ch":[{"m":"e3f3","cn":"车五平四","ch":[{"m":"e5f5","cn":"车5平6","ch":[{"m":"d2d3","cn":"车六进一","c":"红胜"}]}]}]}]}],"title":"084","category":"D","file":"D/084.json","plies":5,"vars":0,"annotated":true}

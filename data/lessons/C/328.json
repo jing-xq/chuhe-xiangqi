@@ -1,0 +1,1 @@
+{"fen":"3ak1r2/1P3R3/3a5/9/9/9/8n/3p5/9/2B1CKB2 w - - 0 0","win":"*","moves":[{"m":"f8e8","cn":"车四平五","ch":[{"m":"e9e8","cn":"将5进5","ch":[{"m":"g0e2","cn":"相三进五","ch":[{"m":"e8d8","cn":"将5退4","ch":[{"m":"b8c8","cn":"兵八平七"}]}]}]}]}],"title":"A车炮兵类-定式03","category":"C","file":"C/328.json","plies":5,"vars":0,"annotated":false}

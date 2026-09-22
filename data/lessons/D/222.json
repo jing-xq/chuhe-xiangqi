@@ -1,0 +1,1 @@
+{"fen":"C5b2/5k3/4R4/p1p5p/7r1/2P6/P7P/2N2A3/5nn2/4KAB2 b - - 0 0","win":"*","moves":[{"m":"f1d0","cn":"马6进4","ch":[{"m":"e0e1","cn":"帅五进五","ch":[{"m":"d0c2","cn":"马4退3","c":"黑胜"}]}]}],"title":"396","category":"D","file":"D/222.json","plies":3,"vars":0,"annotated":true}

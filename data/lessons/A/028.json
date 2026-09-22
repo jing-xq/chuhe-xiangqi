@@ -1,0 +1,1 @@
+{"fen":"2b1ka3/4a4/9/4R4/6N2/9/6r2/9/9/2BAKAB1C w - - 0 1","win":"*","moves":[{"m":"g5f7","cn":"马三进四","ch":[{"m":"e9d9","cn":"将5退4","ch":[{"m":"e6d6","cn":"车五平六","c":"杀！(红胜)"}]}]}],"title":"挂角马1","category":"A","file":"A/028.json","plies":3,"vars":0,"annotated":true}

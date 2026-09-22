@@ -1,0 +1,1 @@
+{"fen":"7C1/R3aP3/3kba3/p3p3p/4c1b2/2B1N4/P3r4/5A3/5K3/3A5 w - - 0 0","win":"*","moves":[{"m":"e4c5","cn":"马五进七","ch":[{"m":"e7c5","cn":"象5进3","ch":[{"m":"h9h7","cn":"炮二退二","ch":[{"m":"g5e7","cn":"象7退5","ch":[{"m":"f8e8","cn":"兵四平五","c":"红胜"}]}]}]}]}],"title":"112","category":"D","file":"D/112.json","plies":5,"vars":0,"annotated":true}

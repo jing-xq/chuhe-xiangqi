@@ -1,0 +1,1 @@
+{"fen":"2ba5/5k3/4ba3/3N5/4P4/8C/n8/9/4p4/3K5 w - - 0 0","win":"*","moves":[{"m":"i4f4","cn":"炮一平四","ch":[{"m":"f7e8","cn":"士6退5","ch":[{"m":"d6f7","cn":"马六进四","ch":[{"m":"f8f7","cn":"将6进6","ch":[{"m":"e5f5","cn":"兵五平四"}]}]}]}]}],"title":"A马炮兵类-定式01","category":"C","file":"C/578.json","plies":5,"vars":0,"annotated":false}
