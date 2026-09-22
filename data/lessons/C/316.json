@@ -1,0 +1,1 @@
+{"fen":"3ak4/9/2Ca5/9/7R1/9/7p1/4C4/4p2r1/2B2K3 w - - 0 0","win":"*","moves":[{"m":"h5h9","cn":"车二进四","ch":[{"m":"e9e8","cn":"将5进5","ch":[{"m":"h9h8","cn":"车二退一","ch":[{"m":"e8e9","cn":"将5退5","ch":[{"m":"c7c9","cn":"炮七进二"}]}]}]}]}],"title":"A车双炮类-定式01","category":"C","file":"C/316.json","plies":5,"vars":0,"annotated":false}

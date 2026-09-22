@@ -1,0 +1,1 @@
+{"fen":"2b1ka3/3Ra4/2c1N4/2C6/p3PP3/9/5nr2/B8/4A4/2BAK4 w - - 0 0","win":"*","moves":[{"m":"c6g6","cn":"炮七平三","c":"红胜","ch":[{"m":"f3g1","cn":"马6进7","ch":[{"m":"g6g1","cn":"炮三退五","ch":[{"m":"g3g1","cn":"车7进2","ch":[{"m":"e7c8","cn":"马五进七"}]}]}]}]}],"title":"514","category":"D","file":"D/284.json","plies":5,"vars":0,"annotated":true}

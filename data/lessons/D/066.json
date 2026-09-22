@@ -1,0 +1,1 @@
+{"fen":"4ka3/3Na4/4b4/pr1c5/6n1p/PCP1n1B2/1R1C1p2P/9/4A4/4KA3 b - - 0 0","win":"*","moves":[{"m":"d6h6","cn":"炮4平8","ch":[{"m":"g4i2","cn":"相三退一","ch":[{"m":"h6h8","cn":"炮8退2","c":"黑胜"}]}]}],"title":"066","category":"D","file":"D/066.json","plies":3,"vars":0,"annotated":true}

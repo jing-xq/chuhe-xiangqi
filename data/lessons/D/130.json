@@ -1,0 +1,1 @@
+{"fen":"2baka3/4n4/3cb4/C3p1C1p/1c1n3P1/2N6/4P4/4B1N2/9/2BAKA3 w - - 0 0","win":"*","moves":[{"m":"c4b6","cn":"马七进八","ch":[{"m":"e8c7","cn":"马5进3","ch":[{"m":"b6d7","cn":"马八进六","ch":[{"m":"e9e8","cn":"将5进5","ch":[{"m":"a6a1","cn":"炮九退五","c":"红胜"}]}]}]}]}],"title":"130","category":"D","file":"D/130.json","plies":5,"vars":0,"annotated":true}

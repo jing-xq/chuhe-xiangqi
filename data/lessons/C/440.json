@@ -1,0 +1,1 @@
+{"fen":"9/3ka2R1/2N6/9/9/2Cr5/9/4B4/1n3p3/4K1B2 w - - 0 0","win":"*","moves":[{"m":"h8e8","cn":"车二平五","ch":[{"m":"d8d7","cn":"将4进4","ch":[{"m":"c7d5","cn":"马七退六","ch":[{"m":"d4e4","cn":"车4平5","ch":[{"m":"d5f6","cn":"马六进四"}]}]}]}]}],"title":"A车马炮类-定式07","category":"C","file":"C/440.json","plies":5,"vars":0,"annotated":false}

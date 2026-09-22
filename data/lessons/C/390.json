@@ -1,0 +1,1 @@
+{"fen":"2bak2r1/4aP2R/4b4/4Cn2p/9/2N6/9/9/4p4/2B2K3 w - - 0 0","win":"*","moves":[{"m":"i8i9","cn":"车一进一","ch":[{"m":"h9i9","cn":"车8平9","ch":[{"m":"c4b6","cn":"马七进八","ch":[{"m":"i9h9","cn":"车9平8","ch":[{"m":"b6c8","cn":"马八进七"}]}]}]}]}],"title":"A车马炮兵类-定式01","category":"C","file":"C/390.json","plies":5,"vars":0,"annotated":false}

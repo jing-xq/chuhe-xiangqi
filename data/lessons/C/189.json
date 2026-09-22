@@ -1,0 +1,1 @@
+{"fen":"9/5k3/4ra3/5R3/9/6R2/9/3n5/9/5K3 w - - 0 0","win":"*","moves":[{"m":"g4g8","cn":"车三进四","ch":[{"m":"f8f9","cn":"将6退6","ch":[{"m":"g8e8","cn":"车三平五","ch":[{"m":"e7c7","cn":"车5平3","ch":[{"m":"e8e2","cn":"车五退六"}]}]}]}]}],"title":"B双车类-第01局","category":"C","file":"C/189.json","plies":5,"vars":0,"annotated":false}

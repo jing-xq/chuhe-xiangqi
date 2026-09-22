@@ -1,0 +1,1 @@
+{"fen":"3a1k3/9/9/3N5/6b2/9/9/9/9/4K4 w - - 0 0","win":"*","moves":[{"m":"d6f7","cn":"马六进四","ch":[{"m":"g5e7","cn":"象7退5","ch":[{"m":"f7h8","cn":"马四进二","ch":[{"m":"f9e9","cn":"将6退5","ch":[{"m":"h8g6","cn":"马二退三"}]}]}]}]}],"title":"B单马类-第12局","category":"C","file":"C/074.json","plies":5,"vars":0,"annotated":false}

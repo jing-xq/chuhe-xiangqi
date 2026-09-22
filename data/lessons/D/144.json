@@ -1,0 +1,1 @@
+{"fen":"1rbak4/4a4/4b1R2/p2r2C1p/9/P3P1P2/1cP3c1P/N2A2n2/3C5/1RBK1AB2 b - - 0 0","win":"*","moves":[{"m":"d6g6","cn":"车4平7","ch":[{"m":"g7g6","cn":"车三退一","ch":[{"m":"g3g0","cn":"炮7进3","c":"黑胜"}]}]}],"title":"156","category":"D","file":"D/144.json","plies":3,"vars":0,"annotated":true}

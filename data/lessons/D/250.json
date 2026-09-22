@@ -1,0 +1,1 @@
+{"fen":"2baka3/2c4r1/n3b1n2/3cp1p1p/2p2r3/2P3P2/R2NP3P/2N1BCR2/6C2/2BAKA3 w - - 0 0","win":"*","moves":[{"m":"g4g5","cn":"兵三进一","ch":[{"m":"g6g5","cn":"卒7进1","ch":[{"m":"g1f1","cn":"炮三平四","c":"红胜"}]}]}],"title":"479","category":"D","file":"D/250.json","plies":3,"vars":0,"annotated":true}

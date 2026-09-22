@@ -1,0 +1,1 @@
+{"fen":"3akaR2/9/3r5/p7p/9/9/5R2P/2r3N1B/4Ac3/2BAK4 b - - 0 0","win":"*","moves":[{"m":"d7d0","cn":"车4进7","c":"黑胜\r\n狼牙山人注：如下必走，","ch":[{"m":"e0d0","cn":"帅五退六","ch":[{"m":"c2c0","cn":"车3进2","c":"狼牙山人注：绝杀无解。"}]}]}],"title":"258","category":"D","file":"D/168.json","plies":3,"vars":0,"annotated":true}

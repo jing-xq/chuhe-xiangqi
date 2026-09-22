@@ -1,0 +1,1 @@
+{"fen":"2bak4/4a4/8b/p3n3p/2P1c2n1/4R4/2r3P1P/BC4N2/N3A1R2/3AK1Br1 b - - 0 0","win":"*","moves":[{"m":"e6g5","cn":"马5进7","c":"黑胜","ch":[{"m":"e4e5","cn":"车五进一","ch":[{"m":"g5f3","cn":"马7进6","c":"狼牙山人注：黑妙踩双车，必得其一！"}]}]}],"title":"342","category":"D","file":"D/203.json","plies":3,"vars":0,"annotated":true}

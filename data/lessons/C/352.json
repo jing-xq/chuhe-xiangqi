@@ -1,0 +1,1 @@
+{"fen":"2b1kab2/4a4/4c4/9/9/3R5/9/1C7/4r4/2BK2B2 w - - 0 0","win":"*","moves":[{"m":"b2b9","cn":"炮八进七","ch":[{"m":"e8d9","cn":"士5退4","ch":[{"m":"d4d9","cn":"车六进五","ch":[{"m":"e9e8","cn":"将5进5","ch":[{"m":"d9d8","cn":"车六退一"}]}]}]}]}],"title":"B车炮类-第01局","category":"C","file":"C/352.json","plies":5,"vars":0,"annotated":false}

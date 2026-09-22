@@ -1,0 +1,1 @@
+{"fen":"5k1P1/1R2a4/5a3/9/2n1r4/9/9/4C4/4p4/2B2KB2 w - - 0 0","win":"*","moves":[{"m":"h9g9","cn":"兵二平三","ch":[{"m":"f9f8","cn":"将6进6","ch":[{"m":"b8e8","cn":"车八平五","ch":[{"m":"e5e8","cn":"车5退3","ch":[{"m":"e2f2","cn":"炮五平四"}]}]}]}]}],"title":"A车炮兵类-定式05","category":"C","file":"C/330.json","plies":5,"vars":0,"annotated":false}

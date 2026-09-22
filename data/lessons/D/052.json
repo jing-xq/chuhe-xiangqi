@@ -1,0 +1,1 @@
+{"fen":"1c2ka3/4a4/b3b4/p1R2R3/9/3r2p1C/P3P1r1P/4B1N2/4A1n2/3A1KB2 b - - 0 0","win":"*","moves":[{"m":"d4f4","cn":"车4平6","ch":[{"m":"f6f4","cn":"车四退二","ch":[{"m":"g4f4","cn":"卒7平6","ch":[{"m":"f0f1","cn":"帅四进四","ch":[{"m":"g3g2","cn":"车7进1","c":"黑胜任"}]}]}]}]}],"title":"052","category":"D","file":"D/052.json","plies":5,"vars":0,"annotated":true}

@@ -1,0 +1,1 @@
+{"fen":"2bak2r1/4a2N1/4b4/4CR3/6r2/9/9/4B4/4A4/2BA1K2c w - - 0 1","win":"*","moves":[{"m":"h8f7","cn":"马二退四","ch":[{"m":"e9f9","cn":"将5退6","ch":[{"m":"f7g9","cn":"马四进三","ch":[{"m":"f9e9","cn":"将6退5"}]}]}]}],"title":"铁门栓1","category":"A","file":"A/036.json","plies":4,"vars":0,"annotated":false}

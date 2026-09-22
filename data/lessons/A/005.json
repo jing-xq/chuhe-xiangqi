@@ -1,0 +1,1 @@
+{"fen":"3k1a3/4a4/4b4/pR2p3p/6p2/2PN5/P3c3P/4B4/4A4/2BAK4 w - - 0 1","win":"*","moves":[{"m":"b6b9","cn":"车八进三","ch":[{"m":"d9d8","cn":"将4进4","ch":[{"m":"d4c6","cn":"马六进七","ch":[{"m":"d8d7","cn":"将4进4","ch":[{"m":"b9b7","cn":"车八退二","c":"(红胜)"}]}]}]}]}],"title":"侧面虎1","category":"A","file":"A/005.json","plies":5,"vars":0,"annotated":true}

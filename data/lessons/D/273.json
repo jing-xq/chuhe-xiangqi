@@ -1,0 +1,1 @@
+{"fen":"2ba1ab2/2Nck1n2/2r6/4p2cp/1C4p2/1nPR5/PC2P3P/4B1N2/4K4/2BA1A3 w - - 0 0","win":"*","moves":[{"m":"b5b8","cn":"前炮进三","ch":[{"m":"e8f8","cn":"将5退6","ch":[{"m":"d4d8","cn":"车六进四","c":"红胜"}]}]}],"title":"503","category":"D","file":"D/273.json","plies":3,"vars":0,"annotated":true}

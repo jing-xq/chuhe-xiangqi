@@ -1,0 +1,1 @@
+{"fen":"2brkabr1/1R7/6c2/p3C3p/7c1/6p2/P1n1P3P/6N2/5R3/2BAKAB2 b - - 0 0","win":"*","moves":[{"m":"h5e5","cn":"炮8平5","ch":[{"m":"f0e1","cn":"仕四进五","ch":[{"m":"g7c7","cn":"炮7平3"}]},{"m":"c0e2","cn":"相七进五","ch":[{"m":"e5e2","cn":"炮5进3"}]}]}],"title":"510","category":"D","file":"D/280.json","plies":5,"vars":1,"annotated":false}

@@ -1,0 +1,1 @@
+{"fen":"2bakab2/9/9/5N2C/9/9/4c2n1/4B4/4A4/2BAK4 w - - 0 1","win":"*","moves":[{"m":"f6g8","cn":"马四进三","ch":[{"m":"e9e8","cn":"将5进5","ch":[{"m":"i6i8","cn":"炮一进二","c":"红胜"}]}]}],"title":"马后炮","category":"A","file":"A/042.json","plies":3,"vars":0,"annotated":true}

@@ -1,0 +1,1 @@
+{"fen":"4k4/4aR3/5a3/4N4/4C4/9/2n6/2r6/3KAp3/5A3 w - - 0 0","win":"*","moves":[{"m":"f8f9","cn":"车四进一","ch":[{"m":"e9f9","cn":"将5退6","ch":[{"m":"e6g7","cn":"马五进三","ch":[{"m":"f9f8","cn":"将6进6","ch":[{"m":"e5f5","cn":"炮五平四"}]}]}]}]}],"title":"A车马炮类-定式09","category":"C","file":"C/442.json","plies":5,"vars":0,"annotated":false}

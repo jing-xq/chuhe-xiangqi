@@ -1,0 +1,1 @@
+{"fen":"1R1rkab2/4a4/4b4/C3p4/4c1p1p/9/P2rN1nC1/4B4/3pA4/1R2KAB2 b - - 0 0","win":"*","moves":[{"m":"g3e2","cn":"马7进5","ch":[{"m":"g0e2","cn":"相三进五","ch":[{"m":"d3e3","cn":"前车平5","c":"黑胜"}]}]}],"title":"165","category":"D","file":"D/150.json","plies":3,"vars":0,"annotated":true}

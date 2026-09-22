@@ -1,0 +1,1 @@
+{"fen":"9/4a4/3ak4/N8/9/9/9/9/9/5K3 w - - 0 0","win":"*","moves":[{"m":"a6b8","cn":"马九进八","ch":[{"m":"e8f9","cn":"士5退6","ch":[{"m":"b8c6","cn":"马八退七","ch":[{"m":"e7e8","cn":"将5退5","ch":[{"m":"f0f1","cn":"帅四进四"}]}]}]}]}],"title":"B单马类-第07局","category":"C","file":"C/068.json","plies":5,"vars":0,"annotated":false}

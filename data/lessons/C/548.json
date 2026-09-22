@@ -1,0 +1,1 @@
+{"fen":"4ka3/9/5a2b/9/9/2R3B2/9/4C4/6p1r/4K1B2 w - - 0 0","win":"*","moves":[{"m":"e2e8","cn":"炮五进六","ch":[{"m":"e9d9","cn":"将5退4","ch":[{"m":"e8i8","cn":"炮五平一","ch":[{"m":"f9e8","cn":"后士进5","ch":[{"m":"c4c9","cn":"车七进五"}]}]}]}]}],"title":"A附局4","category":"C","file":"C/548.json","plies":5,"vars":0,"annotated":false}

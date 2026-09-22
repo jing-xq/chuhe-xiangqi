@@ -1,0 +1,1 @@
+{"fen":"5k3/3Pa4/5aR2/9/9/9/9/1r7/9/2B1K4 w - - 0 0","win":"*","moves":[{"m":"d8d9","cn":"兵六进一","ch":[{"m":"b2f2","cn":"车2平6","ch":[{"m":"d9e9","cn":"兵六平五","ch":[{"m":"f9f8","cn":"将6进6","ch":[{"m":"g7g8","cn":"车三进一"}]}]}]}]}],"title":"A车兵类-定式02","category":"C","file":"C/289.json","plies":5,"vars":0,"annotated":false}

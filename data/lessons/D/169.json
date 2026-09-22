@@ -1,0 +1,1 @@
+{"fen":"3aR1b2/5k3/4Na1n1/p7p/5P3/2B2C3/P8/3A5/4K4/c4rB2 w - - 0 0","win":"*","moves":[{"m":"e9f9","cn":"车五平四","ch":[{"m":"f8e8","cn":"将6退5","ch":[{"m":"f4e4","cn":"炮四平五","ch":[{"m":"e8e7","cn":"将5进5","ch":[{"m":"f5e5","cn":"兵四平五","c":"红胜"}]}]}]}]}],"title":"259","category":"D","file":"D/169.json","plies":5,"vars":0,"annotated":true}

@@ -1,0 +1,1 @@
+{"fen":"2b1kab2/r3a4/1cn3n1c/p1p1p1R1p/1r4p2/2P6/P3N1P1P/4C1N2/2C6/R1BAKAB2 w - - 0 0","win":"*","moves":[{"m":"c4c5","cn":"兵七进一","ch":[{"m":"c6c5","cn":"卒3进1","ch":[{"m":"e3f5","cn":"马五进四","c":"红胜"}]},{"m":"b5c5","cn":"车2平3","ch":[{"m":"e2c2","cn":"炮五平七"}]}]}],"title":"458","category":"D","file":"D/245.json","plies":5,"vars":1,"annotated":true}

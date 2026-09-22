@@ -1,0 +1,1 @@
+{"fen":"1r1k1ab2/4a4/2R1b4/p7p/6p2/2R1C4/P7P/4B4/4K4/3r1AB2 w - - 0 0","win":"*","moves":[{"m":"c4c0","cn":"后车退四","ch":[{"m":"b9b1","cn":"车2进8","ch":[{"m":"c7c1","cn":"前车退六","c":"红胜"}]}]}],"title":"044","category":"D","file":"D/044.json","plies":3,"vars":0,"annotated":true}

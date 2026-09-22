@@ -1,0 +1,1 @@
+{"fen":"1n1k2b2/4a4/3abc3/p1pR5/3NNn3/2P6/P6pP/3Cr3B/4A4/3AK4 w - - 0 0","win":"*","moves":[{"m":"e5f7","cn":"马五进四","ch":[{"m":"f5d6","cn":"马6退4","ch":[{"m":"d2d6","cn":"炮六进四","ch":[{"m":"b9d8","cn":"马2进4","ch":[{"m":"d6e6","cn":"炮六平五"}]}]}]}]}],"title":"对局实例-第15局","category":"C","file":"C/565.json","plies":5,"vars":0,"annotated":false}

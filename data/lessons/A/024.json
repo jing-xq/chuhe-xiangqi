@@ -1,0 +1,1 @@
+{"fen":"1Cba1kb2/1R2a3r/4c2c1/p2RC3p/2p3pn1/P1P6/4P4/2r1B4/4A4/4KAB2 w - - 0 1","win":"*","moves":[{"m":"b8e8","cn":"车八平五","ch":[{"m":"i8e8","cn":"车9平5","ch":[{"m":"d6d9","cn":"车六进三","ch":[{"m":"f9f8","cn":"将6进6","ch":[{"m":"d9f9","cn":"车六平四","c":"胜。"}]}]}]}]}],"title":"天地炮2","category":"A","file":"A/024.json","plies":5,"vars":0,"annotated":true}

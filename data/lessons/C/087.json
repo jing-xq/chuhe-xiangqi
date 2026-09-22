@@ -1,0 +1,1 @@
+{"fen":"3a5/5k3/4ba3/1C1N5/9/9/9/4C4/5p3/2B1KAr2 w - - 0 0","win":"*","moves":[{"m":"e2f2","cn":"炮五平四","ch":[{"m":"f7e8","cn":"士6退5","ch":[{"m":"d6f7","cn":"马六进四","ch":[{"m":"f8f7","cn":"将6进6","ch":[{"m":"b6f6","cn":"炮八平四"}]}]}]}]}],"title":"A双炮马类-定式03","category":"C","file":"C/087.json","plies":5,"vars":0,"annotated":false}

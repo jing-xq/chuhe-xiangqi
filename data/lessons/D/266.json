@@ -1,0 +1,1 @@
+{"fen":"3aka3/9/4b4/9/2b6/8P/7C1/2nN2p2/p3A4/2B1KAB2 w - - 0 0","win":"*","moves":[{"m":"d2f3","cn":"马六进四","ch":[{"m":"a1b1","cn":"卒1平2","ch":[{"m":"h3h1","cn":"炮二退二","ch":[{"m":"c2a3","cn":"马3退1","ch":[{"m":"i4i5","cn":"兵一进一","c":"红胜"}]}]}]}]}],"title":"496","category":"D","file":"D/266.json","plies":5,"vars":0,"annotated":true}

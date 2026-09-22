@@ -1,0 +1,1 @@
+{"fen":"3ak4/3Ra1P2/9/9/4N4/9/9/4B4/1p2r4/3K5 w - - 0 0","win":"*","moves":[{"m":"g8f8","cn":"兵三平四","ch":[{"m":"b1c1","cn":"卒2平3","ch":[{"m":"d8d9","cn":"车六进一","ch":[{"m":"e8d9","cn":"士5退4","ch":[{"m":"e5d7","cn":"马五进六"}]}]}]}]}],"title":"A车马兵类-定式07","category":"C","file":"C/369.json","plies":5,"vars":0,"annotated":false}

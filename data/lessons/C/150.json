@@ -1,0 +1,1 @@
+{"fen":"3ckr3/4a4/4b4/4C4/9/2RR5/5r3/4B1n2/4A4/4KA3 w - - 0 0","win":"*","moves":[{"m":"d4d9","cn":"车六进五","ch":[{"m":"e9d9","cn":"将5退4","ch":[{"m":"c4d4","cn":"车七平六","ch":[{"m":"d9e9","cn":"将4退5","ch":[{"m":"e0d0","cn":"帅五退六"}]}]}]}]}],"title":"A双车炮类-定式06","category":"C","file":"C/150.json","plies":5,"vars":0,"annotated":false}

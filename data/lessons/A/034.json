@@ -1,0 +1,1 @@
+{"fen":"3aka3/5P3/4b4/r3N4/9/8R/9/2n6/9/4KA3 w - - 0 1","win":"*","moves":[{"m":"f8f9","cn":"兵四进一","ch":[{"m":"e9f9","cn":"将5退6","ch":[{"m":"e6g7","cn":"马五进三","ch":[{"m":"f9e9","cn":"将6退5","ch":[{"m":"i4i9","cn":"车一进五","c":"(红胜)"}]}]}]}]}],"title":"钓鱼马1","category":"A","file":"A/034.json","plies":5,"vars":0,"annotated":true}

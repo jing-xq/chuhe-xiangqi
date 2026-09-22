@@ -1,0 +1,1 @@
+{"fen":"3a1k3/4a4/7R1/9/8R/9/r8/9/r3A4/3K1A3 w - - 0 1","win":"*","moves":[{"m":"i5i9","cn":"车一进四","ch":[{"m":"f9f8","cn":"将6进6","ch":[{"m":"h7h8","cn":"车二进一","ch":[{"m":"f8f7","cn":"将6进6","ch":[{"m":"i9i7","cn":"车一退二","c":"红胜"}]}]}]}]}],"title":"双车错1","category":"A","file":"A/017.json","plies":5,"vars":0,"annotated":true}

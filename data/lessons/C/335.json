@@ -1,0 +1,1 @@
+{"fen":"3aka3/4n4/2r1b2R1/9/9/P8/9/9/8C/4K4 w - - 0 0","win":"*","moves":[{"m":"h7e7","cn":"车二平五","ch":[{"m":"c7e7","cn":"车3平5","ch":[{"m":"i1e1","cn":"炮一平五","ch":[{"m":"e7e5","cn":"车5进2","ch":[{"m":"a4a5","cn":"兵九进一"}]}]}]}]}],"title":"B车炮兵类-第02局","category":"C","file":"C/335.json","plies":5,"vars":0,"annotated":false}

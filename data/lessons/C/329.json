@@ -1,0 +1,1 @@
+{"fen":"1C2kab2/4aP3/4c4/9/9/2R6/9/5A2B/3p1r3/4K4 w - - 0 0","win":"*","moves":[{"m":"c4c9","cn":"车七进五","ch":[{"m":"e8d9","cn":"士5退4","ch":[{"m":"f8e8","cn":"兵四平五","ch":[{"m":"f9e8","cn":"士6进5","ch":[{"m":"c9c8","cn":"车七退一"}]}]}]}]}],"title":"A车炮兵类-定式04","category":"C","file":"C/329.json","plies":5,"vars":0,"annotated":false}

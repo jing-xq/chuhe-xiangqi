@@ -1,0 +1,1 @@
+{"fen":"3k5/9/9/8p/9/2R3B1r/9/4BA3/6r2/2R2K3 w - - 0 0","win":"*","moves":[{"m":"c4d4","cn":"前车平六","ch":[{"m":"d9e9","cn":"将4退5","ch":[{"m":"c0e0","cn":"车七平五","ch":[{"m":"i4i0","cn":"车9进4","ch":[{"m":"e2g0","cn":"相五退三"}]}]}]}]}],"title":"A双车类-定式02","category":"C","file":"C/188.json","plies":5,"vars":0,"annotated":false}

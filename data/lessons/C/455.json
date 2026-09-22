@@ -1,0 +1,1 @@
+{"fen":"3aka3/9/n8/C3r4/9/6B2/9/3A2N1B/3K5/3A4R w - - 0 0","win":"*","moves":[{"m":"i0e0","cn":"车一平五","ch":[{"m":"e6e0","cn":"车5进6","ch":[{"m":"d2e1","cn":"前仕退五","ch":[{"m":"a7c6","cn":"马1进3","ch":[{"m":"a6a0","cn":"炮九退六"}]}]}]}]}],"title":"B车马炮类-第02局","category":"C","file":"C/455.json","plies":5,"vars":0,"annotated":false}

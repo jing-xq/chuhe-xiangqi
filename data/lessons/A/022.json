@@ -1,0 +1,1 @@
+{"fen":"1Cbak2r1/4aR3/4b1n2/p1N1p4/2p6/3R2P2/P1P1c4/4B4/1r2A4/2B1KA3 w - - 0 1","win":"*","moves":[{"m":"f8e8","cn":"车四平五","ch":[{"m":"e9f9","cn":"将5退6","ch":[{"m":"d4d9","cn":"车六进五","c":"杀,红胜。"}]}]}],"title":"大胆穿心2","category":"A","file":"A/022.json","plies":3,"vars":0,"annotated":true}

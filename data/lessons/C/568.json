@@ -1,0 +1,1 @@
+{"fen":"3ak4/1N2a4/6R2/p7p/9/P4R3/3r1c2P/2r3N1B/4Ac3/2BAK4 w - - 0 0","win":"*","moves":[{"m":"g7g9","cn":"车三进二","ch":[{"m":"e8f9","cn":"士5退6","ch":[{"m":"b8d7","cn":"马八退六","ch":[{"m":"d3d7","cn":"车4退4","ch":[{"m":"f4f3","cn":"车四退一","ch":[{"m":"d7d0","cn":"车4进7"}]}]}]}]}]}],"title":"对局实例-第18局","category":"C","file":"C/568.json","plies":6,"vars":0,"annotated":false}

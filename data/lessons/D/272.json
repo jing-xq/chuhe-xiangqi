@@ -1,0 +1,1 @@
+{"fen":"2bak4/4a4/4b4/p5P1p/2r1CRn2/6N2/P7P/4c4/3KA4/5A3 b - - 0 0","win":"*","moves":[{"m":"e2b2","cn":"炮5平2","ch":[{"m":"g4e3","cn":"马三退五","ch":[{"m":"g5f3","cn":"马7进6","c":"黑马解困，胜"}]},{"m":"f5g5","cn":"车四平三","ch":[{"m":"b2b5","cn":"炮2退3","c":"红车必丢，负"}]}]}],"title":"502","category":"D","file":"D/272.json","plies":5,"vars":1,"annotated":true}

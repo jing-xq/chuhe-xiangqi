@@ -1,0 +1,1 @@
+{"fen":"2C1kaR2/4a4/2N6/9/9/9/9/9/3r1p3/4K4 w - - 0 0","win":"*","moves":[{"m":"g9f9","cn":"车三平四","ch":[{"m":"e9f9","cn":"将5退6","ch":[{"m":"c7d9","cn":"马七进六"}]}]}],"title":"A车马炮类-定式02","category":"C","file":"C/435.json","plies":3,"vars":0,"annotated":false}

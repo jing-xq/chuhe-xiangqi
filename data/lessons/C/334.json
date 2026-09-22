@@ -1,0 +1,1 @@
+{"fen":"3a5/3k2C2/2Pa2R2/9/9/2B6/9/9/1p2r4/3K5 w - - 0 0","win":"*","moves":[{"m":"g7g1","cn":"车三退六","ch":[{"m":"e1g1","cn":"车5平7","ch":[{"m":"d0e0","cn":"帅六退五","ch":[{"m":"g1g8","cn":"车7退7","ch":[{"m":"c7c8","cn":"兵七进一"}]}]}]}]}],"title":"B车炮兵类-第01局","category":"C","file":"C/334.json","plies":5,"vars":0,"annotated":false}

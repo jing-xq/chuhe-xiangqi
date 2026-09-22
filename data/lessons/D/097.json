@@ -1,0 +1,1 @@
+{"fen":"1c1k1a3/2N1a4/9/9/3Cc1p1p/3nN4/8P/4B4/4A4/4KAB2 w - - 0 0","win":"*","moves":[{"m":"c8d6","cn":"马七退六","ch":[{"m":"d9e9","cn":"将4退5","ch":[{"m":"d5g5","cn":"炮六平三","c":"红胜"}]}]}],"title":"097","category":"D","file":"D/097.json","plies":3,"vars":0,"annotated":true}

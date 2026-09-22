@@ -1,0 +1,1 @@
+{"fen":"C1bN1k3/9/9/9/4R4/7n1/6c2/2p1B4/3KA4/2B2r3 b - - 0 0","win":"*","moves":[{"m":"c2c1","cn":"卒3进1","ch":[{"m":"d1d2","cn":"帅六进六","ch":[{"m":"h4f3","cn":"马8进6","c":"黑胜"}]}]}],"title":"269","category":"D","file":"D/171.json","plies":3,"vars":0,"annotated":true}

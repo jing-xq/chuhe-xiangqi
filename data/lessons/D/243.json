@@ -1,0 +1,1 @@
+{"fen":"2ba1k3/3ra4/1c2bc3/p3C1R1p/2p3r2/4P4/P7P/2N2R3/9/2BAKAB2 w - - 0 0","win":"*","moves":[{"m":"f2f7","cn":"车四进五","ch":[{"m":"b7f7","cn":"炮2平6","ch":[{"m":"e6f6","cn":"炮五平四","ch":[{"m":"f9e9","cn":"将6退5","ch":[{"m":"g6g5","cn":"车三退一","c":"红胜"}]}]}]}]}],"title":"456","category":"D","file":"D/243.json","plies":5,"vars":0,"annotated":true}

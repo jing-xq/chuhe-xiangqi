@@ -1,0 +1,1 @@
+{"fen":"2bak1b2/2r1a3r/4c1n2/p1P1n3p/4c1p2/2R1C4/P5P1P/B1N1C1N2/9/1R1AKAB2 w - - 0 0","win":"*","moves":[{"m":"e2e5","cn":"后炮进三","ch":[{"m":"e7e5","cn":"炮5进2","ch":[{"m":"e4e6","cn":"炮五进二","ch":[{"m":"g7e6","cn":"马7进5","ch":[{"m":"b0b5","cn":"车八进五","c":"红胜"}]}]}]}]}],"title":"042","category":"D","file":"D/042.json","plies":5,"vars":0,"annotated":true}

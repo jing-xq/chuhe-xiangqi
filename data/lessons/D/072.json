@@ -1,0 +1,1 @@
+{"fen":"6b2/3ka4/9/p6rp/3P2R2/P8/8P/4BA3/3pA1N2/c4KB2 b - - 0 0","win":"*","moves":[{"m":"d1d0","cn":"卒4进1","ch":[{"m":"f0f1","cn":"帅四进四","ch":[{"m":"h6h1","cn":"车8进5","ch":[{"m":"e1d0","cn":"仕五退六","ch":[{"m":"a0g0","cn":"炮1平7","c":"黑胜"}]}]}]}]}],"title":"072","category":"D","file":"D/072.json","plies":5,"vars":0,"annotated":true}

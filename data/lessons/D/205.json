@@ -1,0 +1,1 @@
+{"fen":"4kab2/4a4/3nb1c2/1nR6/2r6/6N2/2P4N1/3CB4/4A4/2BAK4 w - - 0 0","win":"*","moves":[{"m":"g4f6","cn":"马三进四","ch":[{"m":"g7f7","cn":"炮7平6","ch":[{"m":"f6d7","cn":"马四进六","ch":[{"m":"f7d7","cn":"炮6平4","ch":[{"m":"c6b6","cn":"车七平八","c":"红胜"}]}]}]}]}],"title":"345","category":"D","file":"D/205.json","plies":5,"vars":0,"annotated":true}

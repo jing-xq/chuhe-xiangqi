@@ -1,0 +1,1 @@
+{"fen":"C1bak4/3RaR3/4b1n2/9/4c4/4r4/9/9/2r1A4/4KA3 w - - 0 1","win":"*","moves":[{"m":"f8e8","cn":"车四平五","ch":[{"m":"g7e8","cn":"马7退5","ch":[{"m":"d8d9","cn":"车六进一","c":"杀"}]}]}],"title":"双车胁士1","category":"A","file":"A/015.json","plies":3,"vars":0,"annotated":true}

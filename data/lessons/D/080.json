@@ -1,0 +1,1 @@
+{"fen":"4kab2/4a3c/1C2b4/2pc4p/p2r1n1R1/2P1p1P2/P7P/N1n1B2N1/4A4/2BAK2C1 w - - 0 0","win":"*","moves":[{"m":"c4c5","cn":"兵七进一","ch":[{"m":"c6c5","cn":"卒3进1","ch":[{"m":"b7b5","cn":"炮八退二","c":"红胜"}]},{"m":"d5c5","cn":"车4平3","ch":[{"m":"b7c7","cn":"炮八平七"}]}]}],"title":"080","category":"D","file":"D/080.json","plies":5,"vars":1,"annotated":true}

@@ -1,0 +1,1 @@
+{"fen":"4kabRC/3raR3/4b4/3r4p/6p2/9/6P1P/4B1n2/5K3/2B6 b - - 0 0","win":"*","moves":[{"m":"d6f6","cn":"前车平6","ch":[{"m":"f8f6","cn":"车四退二","ch":[{"m":"d8d0","cn":"车4进8","c":"黑胜"}]}]}],"title":"519","category":"D","file":"D/289.json","plies":3,"vars":0,"annotated":true}

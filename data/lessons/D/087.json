@@ -1,0 +1,1 @@
+{"fen":"2ba1k3/4cn3/4ba3/p7p/4n2N1/3N2P2/P6CP/2CA5/5K3/2cA5 w - - 0 0","win":"*","moves":[{"m":"c2c8","cn":"炮七进六","ch":[{"m":"e5c6","cn":"马5退3","ch":[{"m":"d4c2","cn":"马六退七","c":"红胜，以下红方马二进三将军必得黑马。"}]}]}],"title":"087","category":"D","file":"D/087.json","plies":3,"vars":0,"annotated":true}

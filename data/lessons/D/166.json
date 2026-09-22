@@ -1,0 +1,1 @@
+{"fen":"1r1k1r3/CC7/9/p7p/4R4/9/P5P1P/3AB4/9/2B1KA3 w - - 0 0","win":"*","moves":[{"m":"a8a9","cn":"炮九进一","ch":[{"m":"b9a9","cn":"车2平1","ch":[{"m":"b8b1","cn":"炮八退七","c":"红胜"}]}]}],"title":"251","category":"D","file":"D/166.json","plies":3,"vars":0,"annotated":true}
