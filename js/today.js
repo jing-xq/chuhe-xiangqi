@@ -8,17 +8,38 @@
 
   let els = {}, route = null;
 
+  function loadRoute() {
+    if (route) return Promise.resolve();
+    return fetch("data/core/route.json").then(r => {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(data => { route = data; });
+  }
+
   function mount(container) {
     container.innerHTML = "<div id='today-body' class='today-wrap'><div class='dim' style='padding:30px'>加载中…</div></div>";
     els = { body: container.querySelector("#today-body") };
-    fetch("data/core/route.json").then(r => r.json()).then(data => {
-      route = data;
-      render();
-    }).catch(() => { els.body.innerHTML = "<div class='dim' style='padding:30px'>课程数据加载失败。</div>"; });
+    loadRoute().then(render).catch(e => {
+      els.body.innerHTML = "<div class='dim' style='padding:30px'>课程数据加载失败（" + e.message + "）。请确认通过本地服务器访问，然后刷新重试。</div>";
+    });
   }
 
   function render() {
-    if (!route) return;
+    if (!route) {
+      els.body.innerHTML = "<div class='dim' style='padding:30px'>加载中…</div>";
+      loadRoute().then(render).catch(e => {
+        els.body.innerHTML = "<div class='dim' style='padding:30px'>课程数据加载失败（" + e.message + "）。</div>";
+      });
+      return;
+    }
+    try {
+      renderBody();
+    } catch (e) {
+      els.body.innerHTML = "<div class='dim' style='padding:30px'>今日计划渲染出错：" + e.message + "</div>";
+    }
+  }
+
+  function renderBody() {
     const settings = Learn.settings();
     const ids = route.lessons.map(l => l.id);
     const cfg = {

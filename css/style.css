@@ -679,7 +679,7 @@ header { box-shadow: 0 2px 10px rgba(0,0,0,.35); position: relative; z-index: 10
 .tab:hover:not(.active) { color: var(--text); border-color: var(--accent); }
 
 /* 所有棋盘：统一木盘投影边框，尺寸一致；光标由棋盘组件按交互状态控制 */
-#board, #pl-board, #spar-board, #gm-board, #gd-board, #trap-board, #co-refboard, #op-board, #op-tboard {
+#board, #pl-board, #spar-board, #gm-board, #gd-board, #trap-board, #co-refboard, #op-board, #op-tboard, #cr-board {
   border-radius: 8px;
   box-shadow: 0 10px 26px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.4);
   cursor: default;
@@ -687,6 +687,9 @@ header { box-shadow: 0 2px 10px rgba(0,0,0,.35); position: relative; z-index: 10
   -webkit-user-select: none;
 }
 #board { width: min(66vh, 560px, 46vw); }
+#cr-board { width: min(72vh, 640px, 52vw); }
+.core-run-main { align-items: flex-start; }
+.core-run-side { flex: 1 1 320px; min-width: 280px; max-width: 560px; }
 #pl-board { width: min(62vh, 530px, 45vw); }
 #spar-board { width: min(62vh, 520px, 45vw); }
 #gm-board, #gd-board, #trap-board { width: min(62vh, 520px, 44vw); }
@@ -719,7 +722,7 @@ header { box-shadow: 0 2px 10px rgba(0,0,0,.35); position: relative; z-index: 10
     border-right: none; border-bottom: 1px solid var(--border);
   }
   .content { flex-direction: column; overflow-y: visible; align-items: center; }
-  #board, #pl-board, #spar-board, #gm-board, #gd-board, #trap-board, #op-board, #op-tboard { width: min(92vw, 440px); }
+  #board, #pl-board, #spar-board, #gm-board, #gd-board, #trap-board, #op-board, #op-tboard, #cr-board { width: min(92vw, 440px); }
   .gm-board-col { width: min(92vw, 440px); }
   .coach-left { width: 100%; min-width: 0; }
   #co-refboard { max-width: min(92vw, 440px); }

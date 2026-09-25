@@ -117,17 +117,19 @@
     // 新手提示
     const isNew = store.doneCount() === 0 && (!window.Guide || Guide.progress === 0);
     $("welcome-banner").classList.toggle("hidden", !isNew);
-    // 挂载其余视图
-    Core.mount($("view-core"));
-    Today.mount($("view-today"));
-    Backup.mount($("view-settings"));
-    Guide.mount($("view-guide"));
-    Traps.mount($("view-traps"));
-    Opening.mount($("view-opening"));
-    Play.mount($("view-play"));
-    Spar.mount($("view-spar"));
-    Games.mount($("view-games"));
-    Coach.mount($("view-coach"));
+    // 挂载其余视图（互不影响：单个挂载失败不影响其余与启动）
+    const mounts = [
+      ["core", "Core"], ["today", "Today"], ["settings", "Backup"], ["guide", "Guide"],
+      ["traps", "Traps"], ["opening", "Opening"], ["play", "Play"], ["spar", "Spar"],
+      ["games", "Games"], ["coach", "Coach"]
+    ];
+    for (const [vid, obj] of mounts) {
+      try { window[obj].mount($("view-" + vid)); }
+      catch (e) {
+        console.error("视图挂载失败：" + obj, e);
+        $("view-" + vid).innerHTML = "<div class='dim' style='padding:30px'>「" + obj + "」加载失败：" + e.message + "</div>";
+      }
+    }
     showView("today");
     $("search").addEventListener("input", e => renderSidebar(e.target.value.trim()));
     // 引擎后台初始化
