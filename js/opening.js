@@ -111,7 +111,8 @@
     const coverage = N ? hits / N : 0;
     const punishRate = rec.punishN === 0 ? 0.5 : rec.punishHit / rec.punishN;
     const mastery = Math.round(50 * coverage + 30 * punishRate + 20 * Math.min(rec.games / 5, 1));
-    return { N, hits, coverage, punishRate, mastery, has: rec.attempts > 0, rec };
+    const stale = !!(rec.rev && sysRev[sysId] && rec.rev !== sysRev[sysId]);
+    return { N, hits, coverage, punishRate, mastery, has: rec.attempts > 0, stale, rec };
   }
 
   /* ---------- 小工具 ---------- */
@@ -406,12 +407,25 @@
     });
   }
 
+  /* 内容版本（7.7）：以主线着法序列的哈希作为内容修订号。
+   * 谱库更新后旧掌握记录标记「内容已更新」，避免误继承。 */
+  const sysRev = {};
+  function revOf(data) {
+    const line = [];
+    let nodes = data.moves || [];
+    while (nodes.length && line.length < 40) { line.push(nodes[0].m); nodes = nodes[0].ch ? [nodes[0].ch[0]] : []; }
+    let h = 5381;
+    const str = line.join(" ");
+    for (let i = 0; i < str.length; i++) { h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; }
+    return "r" + h.toString(36);
+  }
   function loadSys(id) {
     if (sysCache[id]) return Promise.resolve(sysCache[id]);
     const meta = indexData.systems.find(s => s.id === id);
     if (!meta) return Promise.reject(new Error("未知体系 " + id));
     return fetch(meta.file).then(r => r.json()).then(data => {
       sysCache[id] = data;
+      sysRev[id] = revOf(data);
       pruneStore(id, data);
       return data;
     });
@@ -1284,6 +1298,9 @@
     if (completed) {
       ses.reachedMid = true;
       store.addGame(key, side);
+      const rec = store.get(key, side);
+      if (sysRev[key]) rec.rev = sysRev[key];   // 记录完成时的内容版本
+      store.save();
     }
     store.pushRecent(key, side, {
       at: Date.now(),

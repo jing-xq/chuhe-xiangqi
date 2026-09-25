@@ -546,11 +546,43 @@
     return "漏着";
   }
 
+  /* 短复盘（6.7）：默认只突出三件事——一个亮点、一个关键错误、一题再练 */
+  function shortReviewHtml() {
+    const a = cur && cur.analysis;
+    if (!a || !a.perMove || !a.perMove.length) return "";
+    const myMoves = a.perMove;
+    let streak = 0, best = 0;
+    myMoves.forEach(p => { if (p.loss < 40) { streak++; if (streak > best) best = streak; } else streak = 0; });
+    let worstI = -1, worst = 0;
+    myMoves.forEach((p, i) => { if (p.loss > worst) { worst = p.loss; worstI = i; } });
+    const winner = normWinner(cur);
+    const good = best >= 4 ? "最长连续 " + best + " 手与引擎正着一致" : winner === "r" || winner === "b" ? (winner === (cur.mySide || "r") ? "赢下了这盘" : "全局没有大崩盘") : "完成了一盘完整对局";
+    const lessonByPly = worstI < 12 ? ["s5l1", "开局出子"] : worstI < 30 ? ["s3l1", "看住无根子"] : ["s6l2", "残局常识"];
+    let html = "<div class='gm-short'><h4>📋 短复盘（三件事）</h4><ul>" +
+      "<li>👍 做得好：" + good + "。</li>";
+    if (worstI >= 0 && worst >= 120) {
+      html += "<li>⚠️ 最该修的一手：第 " + (Math.floor(worstI / 2) + 1) + " 回合「" + cur.moves[worstI].cn + "」（" + myMoves[worstI].cls + "，损 " + worst + " 分）。" +
+        "<button class='gm-mini' data-drill='" + worstI + "'>↪ 跳到局面</button>" +
+        "<button class='gm-mini' data-ge='" + worstI + "'>＋ 错题本</button></li>";
+    } else {
+      html += "<li>👍 没有明显亏着，保持。</li>";
+    }
+    html += "<li>🎯 再练一题：<button class='gm-mini' data-core='" + lessonByPly[0] + "'>" + lessonByPly[1] + "</button>（新手路线对应课）</li></ul></div>";
+    return html;
+  }
+
   function renderAnalysis() {
     const a = cur && cur.analysis;
     els.mistakes.innerHTML = "";
+    const short = shortReviewHtml();
+    els.mistakes.innerHTML = short;
     drawCurve(a ? a.curve : null);
     if (!a) return;
+    els.mistakes.querySelectorAll("[data-drill]").forEach(b => b.onclick = () => { viewIdx = Number(b.dataset.drill) + 1; refreshBoard(); });
+    els.mistakes.querySelectorAll("[data-core]").forEach(b => b.onclick = () => {
+      if (window.Core) { window.App.showSub("core"); Core.gotoLesson(b.dataset.core); }
+    });
+    els.mistakes.querySelectorAll("[data-ge]").forEach(b => b.onclick = () => addToMistakeBook(Number(b.dataset.ge)));
     const bad = [];
     a.perMove.forEach((p, i) => { if (p.loss >= 120) bad.push({ i, ...p }); });
     if (!bad.length) {
@@ -568,8 +600,50 @@
       row.textContent = (Math.floor(b.i / 2) + 1) + (b.i % 2 ? "…黑" : ".红") + " " + cur.moves[b.i].cn +
         "（" + b.cls + "，损" + b.loss + "分）";
       row.onclick = () => { viewIdx = b.i + 1; refreshBoard(); };
+      row.title = "点击跳转局面";
       els.mistakes.appendChild(row);
+      const add = document.createElement("button");
+      add.className = "gm-mini";
+      add.textContent = "＋错题本";
+      add.title = "生成练习：走出当时的最佳着（需引擎）";
+      add.onclick = () => addToMistakeBook(b.i);
+      els.mistakes.appendChild(add);
     }
+  }
+
+  /* 从问题着生成实战错题：复核局面 → 引擎给最佳着 → 入复习队列（7.5 流程精简版） */
+  async function addToMistakeBook(i) {
+    if (!window.Learn) return;
+    if (!Engine.ready) { els.prog.textContent = "引擎不可用，暂时无法生成错题练习。"; return; }
+    const move = cur.moves[i];
+    const p = positionAt(cur, i);   // 问题着走之前的局面
+    const fen = X.boardToFen(p.board, p.side);
+    els.prog.textContent = "正在复核局面…";
+    const cands = await Engine.candidates(fen, 800, 4, Engine.PRIORITY.USER);
+    if (!cands || !cands.length) { els.prog.textContent = "引擎未能复核该局面，已跳过。"; return; }
+    const best = cands[0];
+    if (best.mv === move.m) { els.prog.textContent = "复核后这手其实是可行着，不必入库。"; return; }
+    if (best.cp <= -800) { els.prog.textContent = "该局面已大败，更适合作为复盘材料，未生成题目。"; return; }
+    const loss = Math.round(Math.max(0, best.cp - (cands.find(c => c.mv === move.m) || { cp: best.cp - (cur.analysis && cur.analysis.perMove[i] ? cur.analysis.perMove[i].loss : 200) }).cp));
+    // 多解等价（7.5）：与最优分差 ≤30cp 的候选一并接受
+    const accept = cands.filter(c => best.cp - c.cp <= 30).slice(0, 3)
+      .map(c => ({ mv: c.mv, cn: safeCnLocal(p.board, p.side, c.mv) }));
+    Learn.gameEx.add({
+      fen, side: p.side, accept,
+      loss: loss || (cur.analysis && cur.analysis.perMove[i] ? cur.analysis.perMove[i].loss : 0),
+      cls: cur.analysis && cur.analysis.perMove[i] ? cur.analysis.perMove[i].cls : "失误",
+      tag: "实战错题", gameId: cur.id, ply: i + 1, cn: move.cn,
+      reason: "复盘：第 " + (Math.floor(i / 2) + 1) + " 回合「" + move.cn + "」，更好的是「" + accept[0].cn + "」。"
+    });
+    els.prog.textContent = "✅ 已加入错题本（做训练 → 错题复习 可练习）。";
+  }
+
+  function safeCnLocal(board, side, mvText) {
+    try {
+      const mv = X.parseMove(mvText);
+      if (X.isLegal(board, side, mv)) return Notation.chinese(board, side, mv);
+    } catch (e) {}
+    return mvText;
   }
 
   function drawCurve(curve) {

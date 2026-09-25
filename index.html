@@ -10,20 +10,20 @@
 <header>
   <div class="brand">🏮 象棋教学</div>
   <nav class="view-nav">
-    <button data-view="lessons" class="nav-btn active">📖 学棋课程</button>
-    <button data-view="guide" class="nav-btn">🌱 新手入门</button>
-    <button data-view="traps" class="nav-btn">🗡️ 飞刀骗招</button>
-    <button data-view="opening" class="nav-btn">🗺️ 开局训练</button>
-    <button data-view="play" class="nav-btn">⚔️ 人机对弈</button>
-    <button data-view="spar" class="nav-btn">👨‍🏫 私教陪练</button>
-    <button data-view="games" class="nav-btn">🗂️ 我的棋谱</button>
-    <button data-view="coach" class="nav-btn">🤖 象棋私教</button>
+    <button data-group="today" class="nav-btn active">🏠 今日学习</button>
+    <button data-group="learn" class="nav-btn">📚 学课程</button>
+    <button data-group="train" class="nav-btn">🎯 做训练</button>
+    <button data-group="battle" class="nav-btn">⚔️ 下棋</button>
+    <button data-group="mine" class="nav-btn">👤 我的</button>
   </nav>
   <div class="header-right">
     <span id="engine-status" class="engine-status" title="内置引擎状态">引擎：…</span>
     <span id="progress-summary" class="progress-summary"></span>
   </div>
 </header>
+
+<div id="subnav" class="subnav"></div>
+<div id="storage-toast" class="storage-toast hidden"></div>
 
 <div class="layout">
   <aside>
@@ -34,7 +34,7 @@
   <main>
     <div id="view-lessons">
       <div id="welcome-banner" class="welcome-banner hidden">
-        👋 第一次学象棋？建议先去顶部「🌱 新手入门」花 10 分钟学会走子，再回来练杀法！
+        👋 第一次学象棋？去「📚 学课程 → 🗺️ 新手路线」从第一课开始，30 课带你下完第一盘完整对局！
       </div>
       <div class="lesson-bar">
       <div class="crumbs">
@@ -87,6 +87,9 @@
     </div>
     </div><!-- /view-lessons -->
 
+    <div id="view-today" class="view-page"></div>
+    <div id="view-core" class="view-page hidden"></div>
+    <div id="view-settings" class="view-page hidden"></div>
     <div id="view-guide" class="view-page hidden"></div>
     <div id="view-traps" class="view-page hidden"></div>
     <div id="view-opening" class="view-page hidden"></div>
@@ -113,6 +116,10 @@
 <script src="js/guide.js"></script>
 <script src="js/traps.js"></script>
 <script src="js/opening.js"></script>
+<script src="js/learn.js"></script>
+<script src="js/core.js"></script>
+<script src="js/today.js"></script>
+<script src="js/backup.js"></script>
 <script src="js/coach.js"></script>
 <script src="js/app.js"></script>
 </body>

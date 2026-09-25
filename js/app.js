@@ -33,25 +33,60 @@
   const canvas = $("board");
   const board = Board.create(canvas, { onMove: onBoardMove });
 
-  /* ---------- 视图切换 ---------- */
-  const VIEWS = ["lessons", "guide", "traps", "opening", "play", "spar", "games", "coach"];
-  let curView = "lessons";
+  /* ---------- 视图切换（五类入口，规划 4.7） ---------- */
+  const VIEWS = ["today", "core", "guide", "lessons", "traps", "opening", "play", "spar", "games", "coach", "settings"];
+  const GROUPS = {
+    today: ["today"],
+    learn: ["core", "guide", "lessons"],
+    train: ["opening", "traps"],
+    battle: ["play", "spar"],
+    mine: ["games", "coach", "settings"]
+  };
+  const SUB_LABELS = {
+    today: "🏠 今日学习", core: "🗺️ 新手路线", guide: "🌱 入门课", lessons: "📖 课程库",
+    opening: "🗺️ 开局训练", traps: "🗡️ 飞刀骗招",
+    play: "⚔️ 人机对弈", spar: "👨‍🏫 私教陪练",
+    games: "🗂️ 我的棋谱", coach: "🤖 象棋私教", settings: "💾 备份与设置"
+  };
+  const VIEW_OBJ = { guide: "Guide", traps: "Traps", opening: "Opening", play: "Play", spar: "Spar", games: "Games", coach: "Coach", core: "Core", today: "Today", settings: "Backup" };
+  let curView = "today";
+  let lastSub = {};
+
+  function groupOf(name) {
+    for (const g of Object.keys(GROUPS)) if (GROUPS[g].indexOf(name) >= 0) return g;
+    return "today";
+  }
+
+  function renderSubnav(name) {
+    const g = groupOf(name);
+    const bar = $("subnav");
+    if (GROUPS[g].length <= 1) { bar.innerHTML = ""; bar.classList.add("hidden"); return; }
+    bar.classList.remove("hidden");
+    bar.innerHTML = GROUPS[g].map(v =>
+      "<button class='subnav-btn" + (v === name ? " active" : "") + "' data-sub='" + v + "'>" + SUB_LABELS[v] + "</button>").join("");
+    bar.querySelectorAll(".subnav-btn").forEach(b => {
+      b.onclick = () => { Sound.play("click"); showView(b.dataset.sub); };
+    });
+  }
 
   function showView(name) {
     // 切走前先通知旧视图收尾（停 autoplay / 讲棋定时器等）
     if (curView !== name) {
-      const prevObj = { guide: "Guide", traps: "Traps", opening: "Opening", play: "Play", spar: "Spar", games: "Games", coach: "Coach" }[curView];
+      const prevObj = VIEW_OBJ[curView];
       const po = prevObj && window[prevObj];
       if (po && typeof po.hide === "function") po.hide();
     }
+    if (curView !== name) lastSub[groupOf(curView)] = curView;
     curView = name;
     for (const v of VIEWS) {
-      $("view-" + v).classList.toggle("hidden", v !== name);
+      const el = $("view-" + v);
+      if (el) el.classList.toggle("hidden", v !== name);
     }
     document.querySelectorAll(".nav-btn").forEach(b => {
-      b.classList.toggle("active", b.dataset.view === name);
+      b.classList.toggle("active", b.dataset.group === groupOf(name));
     });
-    // 侧栏只在课程视图显示
+    renderSubnav(name);
+    // 侧栏只在课程库视图显示
     document.querySelector("aside").style.display = name === "lessons" ? "" : "none";
     if (name === "guide") { Guide.show(); $("welcome-banner").classList.add("hidden"); }
     else if (name === "traps") Traps.show();
@@ -60,10 +95,17 @@
     else if (name === "spar") Spar.show();
     else if (name === "games") Games.show();
     else if (name === "coach") Coach.show();
+    else if (name === "core") Core.show();
+    else if (name === "today") Today.show();
+    else if (name === "settings") Backup.show();
     else board.redraw();
   }
   document.querySelectorAll(".nav-btn").forEach(b => {
-    b.onclick = () => { Sound.play("click"); showView(b.dataset.view); };
+    b.onclick = () => {
+      Sound.play("click");
+      const g = b.dataset.group;
+      showView(lastSub[g] && GROUPS[g].indexOf(lastSub[g]) >= 0 ? lastSub[g] : GROUPS[g][0]);
+    };
   });
 
   /* ---------- 课程目录 ---------- */
@@ -76,6 +118,9 @@
     const isNew = store.doneCount() === 0 && (!window.Guide || Guide.progress === 0);
     $("welcome-banner").classList.toggle("hidden", !isNew);
     // 挂载其余视图
+    Core.mount($("view-core"));
+    Today.mount($("view-today"));
+    Backup.mount($("view-settings"));
     Guide.mount($("view-guide"));
     Traps.mount($("view-traps"));
     Opening.mount($("view-opening"));
@@ -83,7 +128,7 @@
     Spar.mount($("view-spar"));
     Games.mount($("view-games"));
     Coach.mount($("view-coach"));
-    showView("lessons");
+    showView("today");
     $("search").addEventListener("input", e => renderSidebar(e.target.value.trim()));
     // 引擎后台初始化
     refreshEngineStatus("初始化…");
@@ -122,8 +167,13 @@
         const meta = [];
         if (l.annotated) meta.push("评");
         if (l.vars) meta.push("变" + l.vars);
+        const stIcon = prog && prog.done
+          ? (prog.status === "independent" ? "<span class='done' title='独立通过'>✓</span>"
+            : prog.status === "followed" ? "<span class='done half' title='跟做完成'>◐</span>"
+            : "<span class='done' title='看过'>○</span>")
+          : "<span></span>";
         item.innerHTML =
-          (prog && prog.done ? "<span class='done'>✓</span>" : "<span></span>") +
+          stIcon +
           "<span class='t'>" + l.title + "</span>" +
           "<span class='meta'>" + meta.join(" ") + "</span>";
         item.onclick = () => openLesson(l);
@@ -169,6 +219,7 @@
     if (m === "teach") {
       refreshTeach();
     } else {
+      quizHints = 0;
       quiz.reset();
     }
   }
@@ -220,14 +271,19 @@
     $("btn-next").disabled = !player.canNext();
     $("btn-auto").classList.toggle("on", player.autoRunning);
     $("btn-auto").textContent = player.autoRunning ? "⏸" : "▶";
-    // 走到末尾自动记完成
+    // 走到末尾记「看过」（4.2：看过 ≠ 掌握，练习成绩会升级这条记录）
     if (!player.canNext() && player.path.length > 0) markDone("teach");
   }
 
+  const STATUS_RANK = { viewed: 1, followed: 2, independent: 3 };
   function markDone(m, stats) {
+    stats = stats || {};
+    // 状态分层（4.2）：讲棋看完 = viewed；练习用提示/答案 = followed；无提示无答案 = independent
+    let status = "viewed";
+    if (m === "quiz") status = (stats.wrong === 0 && !quizHints && !stats.answers) ? "independent" : "followed";
     const prev = store.get(currentLessonId);
-    if (prev && prev.done) return;
-    store.set(currentLessonId, Object.assign({ done: true, mode: m, at: Date.now() }, stats));
+    if (prev && prev.done && STATUS_RANK[prev.status || "viewed"] >= STATUS_RANK[status]) return;
+    store.set(currentLessonId, { done: true, mode: m, status, at: Date.now() });
     updateProgressSummary();
     renderSidebar($("search").value.trim());
   }
@@ -248,12 +304,13 @@
         ? "棋谱应手中…"
         : (state.message || "轮到你了，走出正着！");
     fb.className = "quiz-feedback" + (state.turn === "done" ? " ok" : state.message ? " bad" : "");
-    $("btn-hint").disabled = !(Engine.ready && state.turn === "student");
+    $("btn-hint").disabled = state.turn !== "student";
     $("btn-answer").disabled = state.turn !== "student";
   }
 
   function onQuizDone(stats) {
     markDone("quiz", stats);
+    quizHints = 0;
     Sound.play("check");
   }
 
@@ -432,18 +489,27 @@
   $("btn-flip").onclick = () => board.flip();
 
   /* ---------- 练习按钮 ---------- */
+  /* 练习按钮（4.3：提示与判题同源——均来自本课谱线，不再请引擎） */
+  let quizHints = 0;   // 本课练习使用的提示次数（计入跟做状态）
+  const PIECE_NAME = { k: "将帅", r: "车", n: "马", c: "炮", a: "仕", b: "相", p: "兵" };
   $("btn-reset").onclick = () => quiz.reset();
   $("btn-answer").onclick = () => quiz.showAnswer();
-  $("btn-hint").onclick = async () => {
+  $("btn-hint").onclick = () => {
     const st = quiz.boardState();
     if (!st || st.turn !== "student") return;
-    const fen = X.boardToFen(st.board, st.side);
-    const mv = await Engine.hint(fen, 700, Engine.PRIORITY.USER);
-    // 等待提示期间用户可能已重置/走子：局面变了就不落提示箭头
-    const now = quiz.boardState();
-    if (mv && now && now.turn === "student" && X.boardToFen(now.board, now.side) === fen) {
-      board.update({ hint: X.parseMove(mv) });
-    }
+    const node = quiz.expectedNodes()[0];
+    if (!node) return;
+    quizHints++;
+    // 一级提示：动哪个子、往哪个方向（不泄露具体落点）
+    const mv = X.parseMove(node.m);
+    const piece = st.board[mv[1]][mv[0]];
+    const name = piece ? PIECE_NAME[piece.toLowerCase()] || "棋子" : "棋子";
+    const red = st.side === "r";
+    const dr = mv[3] - mv[1];
+    const dir = dr === 0 ? "平移" : (dr > 0) === red ? "前进" : "后退";
+    board.update({ hint: [mv[0], mv[1]] });
+    const fb = $("quiz-feedback");
+    fb.textContent = "提示：动「" + name + "」，向" + dir + "（完整答案用「显示答案」）。";
   };
 
   /* ---------- 键盘 ---------- */
@@ -473,8 +539,10 @@
   window.AppDebug = {
     get player() { return player; },
     get quiz() { return quiz; },
-    board, setMode, openLesson, gotoLessons,
+    board, setMode, openLesson, gotoLessons, showView,
     get lesson() { return currentLesson; },
     get lessonId() { return currentLessonId; }
   };
+  /* 供今日学习页等跨视图跳转 */
+  window.App = { showSub: name => showView(name) };
 })();

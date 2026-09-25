@@ -272,6 +272,9 @@
     } else {
       els.clsinfo.textContent = "（本局陷阱点较深或引擎未检出，跟随讲解一步步学习）";
     }
+    if (c && c.cls && c.cls !== "未知") {
+      els.clsinfo.innerHTML += "<br><span class='dim'>分类依据：引擎短时搜索初筛（损失分差），供参考。</span>";
+    }
   }
 
   /* 第 1 阶段：铺垫讲棋 */

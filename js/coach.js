@@ -814,7 +814,12 @@
       const r = await chat(systemPrompt(),
         ctx + "\n\n请点评这盘棋。结尾请用 ```json 代码块输出更新后的学员习惯档案，格式：{\"profile\": \"不超过150字的学员棋风与习惯总结\"}", tick);
       tick(null);
-      addMsg("assistant", r.content, { elapsed: r.elapsed, reasoning: r.reasoning });
+      // 校验层（7.6）：核对回答中提到的具体着法是否真的出现在本局
+      const moves_ = g ? g.moves.map(m => m.cn) : [];
+      const cited = (r.content.match(/[车马炮相象仕士帅将兵卒][前后平进退][一二三四五六七八九1-9]/g) || []);
+      const verified = cited.filter(t => moves_.indexOf(t) >= 0).length;
+      const tag = cited.length ? "\n\n> ✅ 已核对：提到的 " + cited.length + " 处具体着法中 " + verified + " 处来自本局实战记录" + (verified < cited.length ? "，其余为推演变化（以棋盘为准）。" : "。") : "";
+      addMsg("assistant", r.content + tag, { elapsed: r.elapsed, reasoning: r.reasoning });
       lastReview = { game: g, content: r.content };
       const p = extractProfile(r.content);
       if (p) { profile = p; saveProfile(); renderProfile(); }

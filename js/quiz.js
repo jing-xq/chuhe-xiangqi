@@ -13,7 +13,7 @@
     let lesson = null;
     let path = [];         // 已走的节点链（与 Player 相同结构）
     let phase = "idle";    // student | waiting | done | idle
-    let stats = { steps: 0, wrong: 0 };
+    let stats = { steps: 0, wrong: 0, answers: 0 };
     let lastFeedback = "";
     let autoTimer = null;  // 棋谱自动应手的定时器句柄（load/reset 时必须取消）
 
@@ -74,7 +74,7 @@
         lesson = data;
         path = [];
         phase = options().length ? "student" : "done";
-        stats = { steps: 0, wrong: 0 };
+        stats = { steps: 0, wrong: 0, answers: 0 };
         lastFeedback = "";
         notify();
       },
@@ -104,6 +104,7 @@
         if (phase !== "student") return null;
         const node = options()[0];
         if (!node) return null;
+        stats.answers++;
         stats.wrong++;
         lastFeedback = "正着是：" + node.cn;
         Sound.play("click");

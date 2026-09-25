@@ -45,7 +45,11 @@
 | `traps.js` | `Traps` | 飞刀骗招（引擎自动分类：飞刀 vs 骗招） |
 | `opening.js` | `Opening` | 开局训练（跟谱/背谱/掌握度模型，状态机 in_book → punish → free → debrief） |
 | `coach.js` | `Coach` | AI 私教（API 设置/习惯档案/点评问答） |
-| `app.js` | — | 主界面：视图切换、课程目录、讲棋/练习双模式、进度记录 |
+| `app.js` | — | 主界面：五类入口导航（今日学习/学课程/做训练/下棋/我的）、课程目录、讲棋/练习双模式、进度分层 |
+| `learn.js` | `Learn` | 统一学习记录：课程状态分层（看过/跟做/独立/复习通过）、复习队列（次日/3日/7日）、实战错题、能力标签、今日计划纯函数 `buildPlan` |
+| `core.js` | `Core` | 新手路线 30 课运行器（目标/演示/分级提示练习/独立验收）+ 错题复习页；数据来自 `data/core/route.json` |
+| `today.js` | `Today` | 今日学习页：确定性规则生成计划（复习→新课→薄弱项→实战），可调板块开关 |
+| `backup.js` | `Backup` | 备份导出/导入（版本检查、预览、合并/替换，剥离 API Key）+ 保存失败全局横幅 |
 
 视图约定：各视图模块暴露 `mount(container)/show()/hide()`，切走时 `app.js` 会调用旧视图的 `hide()` 收尾（停定时器等），新视图需遵守。
 
@@ -53,6 +57,7 @@
 
 - `data/index.json`：课程索引（9 大分类 A–I，1472 课，`data/lessons/<分类>/<序号>.json`）。
 - `data/lessons/`：课程 JSON，格式 `{fen, win, moves:[{m, cn, ch(变着树)}], title, category, plies, vars, annotated}`。
+- `data/core/route.json`：新手路线 30 课（6 阶段，115 题），由 `tools/build_route.js` 生成：局面全部由基础 FEN + 着法序列经规则引擎推导校验（accept 可解、有干扰项、提示不泄露坐标——三级提示除外）。
 - `data/openings/`：8 个开局体系谱库（主线 20 手 + 变着 + 脱谱教学点），树结构：`moves[].ch[]` 中 `ch[0]` 为主线续着、`ch[1..]` 为变着；节点 `dev[]` 为对方脱谱着（含 `why/punish`）；`mainlineEndPly` 标记入中局点。`index.json` 为索引。
 - 引擎坐标对外统一为内部格式（file a-i，rank 0-9）；fairy-stockfish 输出 rank 为 1-10，`engine.js` 的 `toInternal` 负责换算。
 
@@ -62,6 +67,7 @@
 - `xiangqi.py`：Python 版规则引擎（与 js/rules.js 坐标约定一致，供工具脚本使用）。
 - `gen_openings.js`（Node + fairy-stockfish）：开局谱引擎生成器。分工原则：着法全部来自引擎（种子骨架验伤 → MultiPV 首选为主线、次选为变着），讲解文字可人工/LLM 润色但不得改着法。**一致性原则：同一节点的谱着与脱谱着必须出自同一次 MultiPV 搜索**（两次评估抖动会把谱着误判为脱谱）。
 - `probe_dev.js`：脱谱教学着增量挖掘探针（只输出报告，不写 data/openings）。
+- `build_route.js`（Node）：新手路线生成器，与 `build_openings` 同则：着法/局面由引擎校验，讲解文字可改、着法不可改。
 - `build_openings.py`：谱库校验 + 补全 cn/重建 `index.json`；`--check` 只校验不写文件（CI 式快速检查）。
 - `apply_comments.py`：评注合并。
 - `_eng/`、`_work/`：工具中间产物目录（已 gitignore 相关项见 .gitignore：`.zcode/`、`__pycache__/`、`*.pyc`）。
@@ -73,6 +79,7 @@
   - `node tools/test_opening_logic.js` —— `js/opening.js` 的无头逻辑自测（Node 桩环境模拟浏览器），校验用户节点统计、掌握度公式（50·coverage + 30·punishRate + 20·min(games/5,1)，覆盖率分母为 offeredIds）与谱更新修剪。改动 `opening.js` 或 `build_openings.py` 后应跑它。
   - `node tools/test_stability.js` —— 稳定性批次回归（对应规划文档 9.2 十条用例）：入门课 FEN 与任务判定（`Guide._steps`/`Guide._judge`）、胜负字段迁移（`Games.userResult`/`normWinner`）、损分视角（`Games._computeLosses`）、练习定时器取消、引擎调度器串行/优先级/取消/后台暂停、`CoachBrain._replay` 帧一致性。改动 guide/games/quiz/engine/coachbrain 后应跑它。
 - `python -B tools/build_openings.py --check` —— 开局谱库校验（CI 式快速检查）。
+  - `node tools/test_core_content.js` —— 核心路线内容复验 + Learn 状态分层/复习调度/buildPlan 规则回归。改动 `route.json`、`build_route.js`、`learn.js` 后应跑它。
 - 前端其余流程无自动化测试体系；验证靠起服务器在浏览器里走完整流程（跟谱/对弈/分析/私教）。
 - 无部署流程——纯静态文件本地运行，`git` 是唯一版本控制。
 

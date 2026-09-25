@@ -26,11 +26,11 @@
     missedMate: "有杀先看杀。优势再大，错过绝杀就是给对手机会——入局前先问自己：这手能不能将死？",
     missedCapture: "「白吃白不喝」。对方送到嘴边的子要先算清能不能吃、吃完有没有后患，再决定动不动别的。",
     hanging: "「根」是棋子的命。走每一手之前看一眼：这手走完，我的大子有没有变成无根子、被对方白吃？",
-    missedCheck: "「有将必先抽」。将军是先手中的先手，能将军时不将，等于把主动权让给对方。",
+    missedCheck: "将军是先手中的先手——但先确认对方应将之后你有后续手段，再决定是否将军。",
     unpunished: "对手失误是送礼，但礼物要自己伸手接。对方走出漏着时，先找最狠的惩罚手段，别按部就班走自己的。",
     repeated: "「一子多动是大忌」。开局要务是让所有大子尽快出动，一个子连走好几步，等于让对手白走好几步棋。",
-    rookLate: "「三步不出车，必定要输棋」。车是最强子力却缩在角落，等于开局就让了对方大半个车。",
-    positional: "分数不会说谎：这手棋让局面掉了不少分。正着的思路见下面的引擎主线，对比体会差别。"
+    rookLate: "车是最强子力，开局长期缩在角落会白白让先——在没有 keyword 阻挡时尽早把车开出来。".replace("keyword ", ""),
+    positional: "引擎评分认为这手掉分较多（短时间搜索的参考结论，并非绝对）。正着的思路见主线，对比体会差别。"
   };
 
   const clsName = l => l < 40 ? "正常" : l < 120 ? "一般" : l < 250 ? "欠佳" : l < 500 ? "失误" : "漏着";
@@ -276,15 +276,23 @@
     const missedOpp = mine.filter(m => m.diag && m.loss >= 150 &&
       ((m.diag.bestCap - m.diag.playedCap >= 400) || (m.diag.bestCheck && !m.diag.playedCheck) || m.diag.missedMate)).length;
     const hangBlunders = mine.filter(m => m.diag && m.diag.newHang.length && m.loss >= 150).length;
+    // 某阶段没有你的着法时显示「未评估」，而不是拿平均损失充数（4.6）
+    const phaseCount = ph => mine.filter(m => m.phase === ph).length;
     const dims = {
       "开局": clampScore(95 - phaseLoss("开局") * 0.35 - (opening.repeated.length + (opening.rookLate ? 1 : 0)) * 10),
-      "中局": clampScore(95 - phaseLoss("中局") * 0.35),
-      "残局": clampScore(95 - phaseLoss("残局") * 0.35),
+      "中局": phaseCount("中局") ? clampScore(95 - phaseLoss("中局") * 0.35) : null,
+      "残局": phaseCount("残局") ? clampScore(95 - phaseLoss("残局") * 0.35) : null,
       "进攻": clampScore(88 - missedOpp * 12),
       "防守": clampScore(88 - hangBlunders * 12),
       "稳定": clampScore(96 - mistakes * 8 - blunders * 15)
     };
-    const score = Math.round((dims["开局"] + dims["中局"] + dims["残局"] + dims["进攻"] + dims["防守"] + dims["稳定"]) / 6);
+    const scored = Object.keys(dims).filter(k => dims[k] !== null);
+    const score = Math.round(scored.reduce((a, k) => a + dims[k], 0) / scored.length);
+    // 分析缺失提示（4.6：分析不足不能按零损分处理）
+    const missing = moves.filter(m => m.side === my).filter(m => {
+      const ev = evals[m.i + 1];
+      return ev === null;
+    }).length;
 
     /* 起名：按最突出的问题定主题 */
     const missedMate = mine.some(m => m.diag && m.diag.missedMate);
@@ -350,9 +358,11 @@
     md.push(openIssues.length ? openIssues.map(s => "- " + s).join("\n") : "- 开局出子顺序正常，强子出动及时。");
 
     md.push("## 📊 六维简评");
-    md.push("开局 " + dims["开局"] + " · 中局 " + dims["中局"] + " · 残局 " + dims["残局"] +
+    const fmt = k => dims[k] === null ? "本局未评估" : dims[k];
+    md.push("开局 " + fmt("开局") + " · 中局 " + fmt("中局") + " · 残局 " + fmt("残局") +
       " · 进攻 " + dims["进攻"] + " · 防守 " + dims["防守"] + " · 稳定 " + dims["稳定"] +
-      "（雷达图见「我的棋谱 → 已讲解」）");
+      "（雷达图见「我的棋谱 → 已讲解」）" +
+      (missing ? "\n\n⚠️ 有 " + missing + " 手引擎未返回评分，按「分析不足」处理、未计入你的损分。" : ""));
 
     const advice = [];
     const weak = Object.keys(dims).sort((a, b) => dims[a] - dims[b])[0];
