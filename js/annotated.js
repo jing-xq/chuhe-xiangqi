@@ -17,7 +17,9 @@
     if (game.analysis) losses = game.analysis.perMove.map(p => p.loss);
     const avg = losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : 60;
     const big = losses.filter(x => x >= 250).length;
-    const win = game.result === "win" ? 1 : game.result === "draw" ? 0.5 : 0;
+    // 用户视角胜负：存档可能只有旧字段，经 Games.userResult 统一推导
+    const ur = (window.Games && Games.userResult) ? Games.userResult(game) : game.result;
+    const win = ur === "win" ? 1 : ur === "draw" ? 0.5 : 0;
     const q = v => Math.max(20, Math.min(95, Math.round(v)));
     return {
       "开局": q(70 + win * 15),

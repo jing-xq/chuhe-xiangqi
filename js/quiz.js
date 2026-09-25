@@ -15,6 +15,11 @@
     let phase = "idle";    // student | waiting | done | idle
     let stats = { steps: 0, wrong: 0 };
     let lastFeedback = "";
+    let autoTimer = null;  // 棋谱自动应手的定时器句柄（load/reset 时必须取消）
+
+    function clearAuto() {
+      if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+    }
 
     function rootMoves() { return lesson ? (lesson.moves || []) : []; }
     function currentNode() { return path.length ? path[path.length - 1] : null; }
@@ -45,7 +50,10 @@
         // 棋谱自动应一手
         phase = "waiting";
         notify();
-        setTimeout(() => {
+        clearAuto();
+        autoTimer = setTimeout(() => {
+          autoTimer = null;
+          if (phase !== "waiting") return;   // 等待期间被 load/reset：不得写入新一轮练习
           path.push(node.ch[0]);
           phase = options().length ? "student" : "done";
           lastFeedback = "";
@@ -62,6 +70,7 @@
 
     const api = {
       load(data) {
+        clearAuto();     // 旧练习的自动应手作废，不能落进新一轮
         lesson = data;
         path = [];
         phase = options().length ? "student" : "done";

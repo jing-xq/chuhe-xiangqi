@@ -895,7 +895,7 @@
     ses.thinking = true;
     refreshTrain();
     const fen = X.boardToFen(ses.board, ses.side);
-    const mv = await Engine.hint(fen, 700);
+    const mv = await Engine.hint(fen, 700, Engine.PRIORITY.USER);
     if (token !== uiToken) return;
     ses.thinking = false;
     if (mv) {
@@ -937,7 +937,7 @@
     const boardBefore = X.cloneBoard(ses.board);
     const sideBefore = ses.side;
     const fen = X.boardToFen(boardBefore, sideBefore);
-    const mv = await Engine.hint(fen, 700);
+    const mv = await Engine.hint(fen, 700, Engine.PRIORITY.USER);
     if (token !== uiToken) return;
     if (!mv) {
       ses.thinking = false;
@@ -992,7 +992,7 @@
   function collectEval(ply, fen, sideToMove) {
     if (!ses || ses.mode === "memorize" || !Engine.ready) return;
     const token = uiToken;
-    Engine.evalCp(fen, 300).then(cp => {
+    Engine.evalCp(fen, 300, Engine.PRIORITY.AMBIENT).then(cp => {
       if (cp == null || token !== uiToken || !ses || ses.finished) return;
       ses.evalHist[ply] = { ply, cp: cpToRed(cp, sideToMove) };
       if (curSub === "train") renderEvalChart();
@@ -1173,7 +1173,7 @@
 
     if (Engine.ready) {
       const fen = X.boardToFen(ses.board, ses.side);
-      const cands = await Engine.candidates(fen, 400, 5);
+      const cands = await Engine.candidates(fen, 400, 5, Engine.PRIORITY.PLAY);
       if (cands.length >= 3) {
         const bestCp = cands[0].cp;
         const pool = cands.slice(2, 5).filter(c => bestCp - c.cp >= 60 && !chSet.has(c.mv) && legal.has(c.mv));
@@ -1212,7 +1212,7 @@
   async function oppFreeTurn(token) {
     const fen = X.boardToFen(ses.board, ses.side);
     let mvText = null;
-    if (Engine.ready) mvText = await Engine.hint(fen, 600);
+    if (Engine.ready) mvText = await Engine.hint(fen, 600, Engine.PRIORITY.PLAY);
     if (token !== uiToken) return;
     if (!mvText) {
       const legal = X.legalMoves(ses.board, ses.side);
@@ -1228,10 +1228,10 @@
   async function evaluateChoice(board, side, moveText) {
     if (!Engine.ready) return null;
     const fen = X.boardToFen(board, side);
-    let cands = await Engine.candidates(fen, 350, 4);
+    let cands = await Engine.candidates(fen, 350, 4, Engine.PRIORITY.USER);
     if (!cands.length) {
       await new Promise(r => setTimeout(r, 200));
-      cands = await Engine.candidates(fen, 600, 4);
+      cands = await Engine.candidates(fen, 600, 4, Engine.PRIORITY.USER);
     }
     if (!cands.length) return null;
     const best = cands[0];
@@ -1241,7 +1241,7 @@
     else {
       const b2 = X.cloneBoard(board);
       try { X.applyMove(b2, ...X.parseMove(moveText)); } catch (e) { return null; }
-      const e = await Engine.evalCp(X.boardToFen(b2, X.other(side)), 250);
+      const e = await Engine.evalCp(X.boardToFen(b2, X.other(side)), 250, Engine.PRIORITY.USER);
       if (e === null) return null;
       actualCp = -e;
     }

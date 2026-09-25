@@ -277,6 +277,13 @@
     return { result: "draw" };
   }
 
+  /* 第 ply 手（0 起）的行棋方：由起始局面行棋方与步数推导。
+   * 棋谱存档通常只有 {m,cn} 不含行棋方，红黑视角计算必须用它推导（黑先残局同样适用）。 */
+  function sideAtPly(startSide, ply) { return ply % 2 === 0 ? startSide : other(startSide); }
+
+  /* 走子方视角分 → 红方视角分（评估转换的唯一来源，供棋谱分析/私教/开局训练共用） */
+  function cpToRed(cp, sideToMove) { return sideToMove === RED ? cp : -cp; }
+
   function parseMove(text) {
     text = text.trim().toLowerCase();
     if (text.length !== 4) throw new Error("着法长度须为 4: " + text);
@@ -298,6 +305,6 @@
     RED, BLACK, FILES, INIT_FEN, other, inBoard, inPalace, crossedRiver, cloneBoard,
     parseFen, boardToFen, findKing, kingsFace, applyMove, attackedBy,
     pseudoMoves, isLegal, legalMoves, isCheck, isCheckmate, parseMove, moveToText,
-    repetitionResult
+    repetitionResult, sideAtPly, cpToRed
   };
 })();

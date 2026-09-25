@@ -1,4 +1,4 @@
-/* 象棋私教：默认由本地引擎大脑（js/coachbrain.js，皮卡鱼逐手拆解 + 棋理模板）点评棋局，
+/* 象棋私教：默认由本地引擎大脑（js/coachbrain.js，fairy-stockfish 逐手拆解 + 棋理模板）点评棋局，
  * 零 tokens、讲解可复核；引擎不可用时才回退到用户自填的大模型 API（OpenAI 兼容格式）。
  * 布局：左侧参照棋盘（跟随上下文）+ 设置入口；右侧对话（Markdown 渲染）。
  * 设置面板：API 配置 / 学员习惯档案（可编辑）/ 自定义私教提示词。
@@ -38,12 +38,19 @@
   /* ---------- Markdown 渲染：共享 js/md.js ---------- */
 
   /* ---------- 本地战绩统计 ---------- */
+  /* 用户视角胜负（win/loss/draw/unknown）：统一经 Games.userResult 推导，
+   * 兼容新旧存档字段（旧存档 result 有用户视角/红方视角两种含义，见规划 3.3） */
+  function userResultOf(g) {
+    return (window.Games && Games.userResult) ? Games.userResult(g) : (g.result || "unknown");
+  }
+
   function localStats() {
     const gs = window.Games ? Games.all() : [];
     let w = 0, l = 0, d = 0, losses = [], games = 0;
     for (const g of gs) {
       games++;
-      if (g.result === "win") w++; else if (g.result === "loss") l++; else d++;
+      const ur = userResultOf(g);
+      if (ur === "win") w++; else if (ur === "loss") l++; else if (ur === "draw") d++;
       if (g.analysis) for (const p of g.analysis.perMove) losses.push(p.loss);
     }
     losses.sort((a, b) => b - a);
@@ -73,7 +80,7 @@
     });
     let s = "【对局】" + new Date(g.ts).toLocaleString() +
       " 对手：" + (g.levelName || "未知") + " 我执" + (g.mySide === "r" ? "红" : "黑") +
-      " 结果：" + (g.result === "win" ? "胜" : g.result === "loss" ? "负" : "和") + "（" + (g.reason || "") + "）\n" +
+      " 结果：" + (userResultOf(g) === "win" ? "胜" : userResultOf(g) === "loss" ? "负" : "和") + "（" + (g.reason || "") + "）\n" +
       row.join(" ");
     if (g.analysis) {
       const bad = [];
@@ -524,7 +531,7 @@
       const opt = document.createElement("option");
       opt.value = String(i);
       opt.textContent = d.toLocaleString() + " · " +
-        (g.result === "win" ? "胜" : g.result === "loss" ? "负" : g.result === "draw" ? "和" : "谱") +
+        (userResultOf(g) === "win" ? "胜" : userResultOf(g) === "loss" ? "负" : userResultOf(g) === "draw" ? "和" : "谱") +
         " · " + g.moves.length + "着";
       els.game.appendChild(opt);
     });
@@ -653,7 +660,7 @@
     }
   }
 
-  /* 润色层：皮卡鱼（数学老师）写教案，LLM（语文老师）只负责讲得生动。
+  /* 润色层：fairy-stockfish（数学老师）写教案，LLM（语文老师）只负责讲得生动。
    * 评分与数据永远以本地引擎为准。 */
   async function polishReview(div, btn) {
     if (!lastReview || !lastReview.local) return;
@@ -864,7 +871,7 @@
       dims,
       game: {
         moves: g.moves.map(m => ({ m: m.m, cn: m.cn })),
-        result: g.result, mySide: g.mySide,
+        result: g.result, winner: g.winner, imported: g.imported || false, mySide: g.mySide,
         levelName: g.levelName, reason: g.reason || "",
         fen: g.fen || null,
         analysis: g.analysis || null

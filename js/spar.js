@@ -492,7 +492,7 @@
     els.start.onclick = startGame;
     els.restart.onclick = startGame;
     els.undo.onclick = undo;
-    els.resign.onclick = () => finish(st.mySide === "r" ? "loss" : "win", "认输");
+    els.resign.onclick = () => { if (st && st.status === "playing") finish("loss", "认输"); };
     els.flip.onclick = () => board.flip();
     els.reco.onclick = onRecommend;
     els.level.onchange = updateLevelInfo;
@@ -505,9 +505,9 @@
     const lvl = LEVELS[Number(els.level.value)];
     let w = 0, l = 0, d = 0;
     for (const g of (window.Games ? Games.all() : [])) {
-      if (g.levelName === lvl.name) {
-        if (g.result === "win") w++; else if (g.result === "loss") l++; else d++;
-      }
+      if (g.levelName !== lvl.name) continue;
+      const ur = Games.userResult ? Games.userResult(g) : g.result;
+      if (ur === "win") w++; else if (ur === "loss") l++; else if (ur === "draw") d++;
     }
     const record = (w + l + d) ? `你对该对手战绩：${w}胜${d}和${l}负` : "与该对手尚未交手";
     els.desc.textContent = "🎓 私教全程陪练 · " + lvl.desc + "　·　" + record;
@@ -610,7 +610,7 @@
   async function coachReviewStudentMove(r, node, preBoard, preSide, preRedCp, tk) {
     const cn = node.cn;
     if (r.ev === "stuOff" || (st.offBook && r.ev === "none")) {
-      const res = await evaluateChoice(preBoard, preSide, node.m);
+      const res = await evaluateChoice(preBoard, preSide, node.m, Engine.PRIORITY.USER);
       if (st.token !== tk || !res) {
         if (r.ev === "stuOff") coachSay("这手走出了谱——我没算清具体亏多少，但形状已经不是正变，稳住再下。");
       } else {
@@ -640,7 +640,7 @@
     // 谱内 / 无需逐手点评：只刷新形势条与顶部评分
     if (st.token !== tk) return;
     if (Engine.ready) {
-      const cp = await Engine.evalCp(X.boardToFen(st.board, st.side), 250);
+      const cp = await Engine.evalCp(X.boardToFen(st.board, st.side), 250, Engine.PRIORITY.AMBIENT);
       if (st.token !== tk || cp === null) return;
       const redCp = st.side === "r" ? cp : -cp;
       st.lastRedCp = redCp;
@@ -656,7 +656,7 @@
     const prev = st.lastRedCp;
     let cands = null;
     if (Engine.ready) {
-      cands = await Engine.candidates(X.boardToFen(st.board, st.side), 300, 3);
+      cands = await Engine.candidates(X.boardToFen(st.board, st.side), 300, 3, Engine.PRIORITY.USER);
       if (st.token !== tk) return;
     }
     if (cands && cands.length) {
@@ -762,13 +762,13 @@
   }
 
   /* loss = max(0, best.cp − actual.cp)；actual 不在候选时 cloneBoard 重放后 evalCp 取负 */
-  async function evaluateChoice(board, side, moveText) {
+  async function evaluateChoice(board, side, moveText, priority) {
     if (!Engine.ready) return null;
     const fen = X.boardToFen(board, side);
-    let cands = await Engine.candidates(fen, 350, 4);
+    let cands = await Engine.candidates(fen, 350, 4, priority);
     if (!cands.length) {
       await new Promise(r => setTimeout(r, 200));
-      cands = await Engine.candidates(fen, 600, 4);
+      cands = await Engine.candidates(fen, 600, 4, priority);
     }
     if (!cands.length) return null;
     const best = cands[0];
@@ -778,7 +778,7 @@
     else {
       const b2 = X.cloneBoard(board);
       try { X.applyMove(b2, ...X.parseMove(moveText)); } catch (e) { return null; }
-      const e = await Engine.evalCp(X.boardToFen(b2, X.other(side)), 250);
+      const e = await Engine.evalCp(X.boardToFen(b2, X.other(side)), 250, priority);
       if (e === null) return null;
       actualCp = -e;
     }
@@ -833,7 +833,9 @@
     st.token++;   // 使在途异步点评失效
     st.result = { result, reason };
     Sound.play(result === "win" ? "check" : result === "draw" ? "draw" : "illegal");
-    const who = result === "draw" ? "和棋" : (result === "win") === (st.mySide === "r") ? "你赢了" : "你输了";
+    // result 统一为用户视角；winner 为红黑视角（字段约定见 games.js）
+    const winner = result === "draw" ? "draw" : result === "win" ? st.mySide : X.other(st.mySide);
+    const who = result === "draw" ? "和棋" : result === "win" ? "你赢了" : "你输了";
     let summary = "这盘" + who + "（" + reason + "）。";
     if (st.worstMine && st.worstMine.loss >= 120) {
       summary += "你最损的一手是「" + st.worstMine.cn + "」（损 " + st.worstMine.loss + " 分），下次走前先默念一句口诀。";
@@ -850,7 +852,7 @@
         level: st.level,
         levelName: LEVELS[st.level].name,
         mySide: st.mySide,
-        result, reason,
+        winner, result, reason,
         moves: st.moves.map(m => ({ m: m.m, cn: m.cn }))
       });
     }
@@ -874,7 +876,7 @@
       } else {
         mvText = bookMove(lvl);
         if (!mvText) {
-          const cands = await Engine.candidates(X.boardToFen(st.board, st.side), lvl.time, lvl.pv || 4);
+          const cands = await Engine.candidates(X.boardToFen(st.board, st.side), lvl.time, lvl.pv || 4, Engine.PRIORITY.PLAY);
           if (!cands.length) throw new Error("no candidates");
           mvText = pickMove(cands, lvl);
         }
@@ -939,7 +941,7 @@
     const tk = ++st.token;
     try {
       const fen = X.boardToFen(st.board, st.side);
-      const cands = await Engine.candidates(fen, 400, 1);
+      const cands = await Engine.candidates(fen, 400, 1, Engine.PRIORITY.USER);
       if (st.token !== tk) return;
       const best = cands && cands[0];
       let mv = null;
@@ -1058,6 +1060,14 @@
   window.Spar = {
     mount,
     show() {
+      // hide() 会失效所有在途回调，若切走时正在思考/点评，返回后会卡在 thinking 锁上。
+      // 恢复策略：清锁并续上流程——该谁走谁走（对手在走则重新发起应着）。
+      if (st && st.status === "playing" && st.thinking) {
+        st.token++;          // 再失效一次：迟到的旧回调不得与恢复流程并发
+        st.thinking = false;
+        refresh();
+        if (st.side !== st.mySide) engineTurn();
+      }
       refresh();
       updateLevelInfo();
       els.note.textContent = Engine.ready ? "" : "（引擎不可用：私教无法实时解析）";

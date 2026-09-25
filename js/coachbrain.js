@@ -1,5 +1,5 @@
 /* 本地私教大脑：不调外部大模型，零 tokens。
- * 用皮卡鱼引擎（fairy-stockfish + NNUE）逐手拆解对局，再用规则级棋理特征
+ * 用 fairy-stockfish 引擎（+ NNUE）逐手拆解对局，再用规则级棋理特征
  * （子力价值 / 将军 / 无根子 / 开局原则）把引擎数据翻译成学员听得懂的讲解。
  *
  * 棋理知识库来源：象棋经典口诀与教科书原则（炮勿轻发、马勿躁进、三步不出车、
@@ -103,10 +103,12 @@
   }
 
   /* 重放对局，得到每一步走前的局面序列（含终局，共 n+1 个）。
-   * game.fen 存在时（导入的残局摆谱）以它为起点。 */
+   * game.fen 存在时（导入的残局摆谱）以它为起点。
+   * 每帧棋盘都是独立快照——初始局面若直接存引用，会被后续 applyMove 改写，
+   * 导致第一帧 board 与第一帧 fen 不一致（历史局面必须互不共享）。 */
   function replay(moves, startFen) {
     const { board, side } = X.parseFen(startFen || START_FEN);
-    const states = [{ board, side, fen: X.boardToFen(board, side) }];
+    const states = [{ board: X.cloneBoard(board), side, fen: X.boardToFen(board, side) }];
     for (const m of moves) {
       const mv = X.parseMove(m.m);
       X.applyMove(board, mv[0], mv[1], mv[2], mv[3]);
@@ -126,7 +128,7 @@
       if (!X.legalMoves(st.board, st.side).length) {
         evals[i] = -100000;   // 象棋规则：无棋可动（将死或困毙）判负
       } else {
-        const cands = await Engine.candidates(st.fen, ms, 3);
+        const cands = await Engine.candidates(st.fen, ms, 3, Engine.PRIORITY.REVIEW);
         if (cands && cands.length) {
           infos[i] = cands;
           evals[i] = cands[0].cp;
@@ -301,7 +303,7 @@
     const md = [];
     md.push("## 📋 引擎复盘报告（本地生成 · 0 tokens）");
     md.push("本局你执" + (my === "r" ? "红" : "黑") + "，结果" + resText + "。" +
-      "皮卡鱼引擎逐手拆解 " + (n + 1) + " 个局面（每手约 " + ms + "ms），总评 **" + score + " 分**，" +
+      "fairy-stockfish 引擎逐手拆解 " + (n + 1) + " 个局面（每手约 " + ms + "ms），总评 **" + score + " 分**，" +
       "你的着法平均每手损 **" + avgLoss + " 分**，失误 " + mistakes + " 手、漏着 " + blunders + " 手，" +
       "与引擎正着吻合度 **" + acc + "%**" + (bestStreak >= 4 ? "（最长连续 " + bestStreak + " 手吻合）" : "") + "。" +
       (score >= 85 ? "整体发挥相当稳健，继续保持！" :
@@ -411,5 +413,5 @@
     };
   }
 
-  window.CoachBrain = { review };
+  window.CoachBrain = { review, _replay: replay };
 })();

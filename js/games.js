@@ -11,6 +11,33 @@
 
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
 
+  /* ---------- 胜负字段约定（见规划文档 3.3） ----------
+   * 新存档一律写 winner（"r"|"b"|"draw"）+ mySide + reason；用户胜负由 winner 与 mySide 推导，
+   * result（"win"|"loss"|"draw"|"unknown"，用户视角）继续保留以兼容旧读取方。
+   * 旧存档迁移：result 曾有两种含义——对弈/陪练存档为用户视角；
+   * 导入棋谱（imported:true）为红方视角（win=红胜）。按来源推导，不无条件翻转。 */
+  function normWinner(g) {
+    if (g.winner === "r" || g.winner === "b" || g.winner === "draw") return g.winner;
+    if (g.result === "draw") return "draw";
+    if (g.imported) {
+      if (g.result === "win") return "r";
+      if (g.result === "loss") return "b";
+    } else {
+      if (g.result === "win") return g.mySide === "b" ? "b" : "r";
+      if (g.result === "loss") return g.mySide === "b" ? "r" : "b";
+    }
+    return "unknown";
+  }
+  function userResult(g) {
+    const w = normWinner(g);
+    if (w === "draw") return "draw";
+    if (w === "unknown" || !g.mySide) return "unknown";
+    return w === g.mySide ? "win" : "loss";
+  }
+  function winnerText(g) {
+    const w = normWinner(g);
+    return w === "r" ? "红胜" : w === "b" ? "黑胜" : w === "draw" ? "和棋" : "结果不详";
+  }
   const api = {
     add(rec) {
       rec.id = "g" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
@@ -171,20 +198,21 @@
       .replace(/[!?！？,，.。;；、·\s]/g, "");
   }
 
-  /* 解析棋谱文本 → { moves:[{m,cn}], result, fen, error }
+  /* 解析棋谱文本 → { moves:[{m,cn}], winner, fen, error }
+   * winner 为红黑视角（"r"|"b"|"draw"|"unknown"）；存档时再按 mySide 折算成用户视角。
    * 支持首行（或任意处）带 FEN 的残局摆谱：以该局面为起点解析后续着法。 */
   function parseGameText(text) {
     // 头部信息（【键 值】或 键:值），结果判定
-    let result = "unknown";
+    let winner = "unknown";
     const head = /【\s*结果\s*[:：]?\s*([^】]+)】/.exec(text) || /结果\s*[:：]\s*(\S+)/.exec(text);
     if (head) {
       const h = head[1];
-      if (/红胜|红先胜/.test(h)) result = "win";
-      else if (/黑胜/.test(h)) result = "loss";
-      else if (/和|平/.test(h)) result = "draw";
+      if (/红胜|红先胜/.test(h)) winner = "r";
+      else if (/黑胜/.test(h)) winner = "b";
+      else if (/和|平/.test(h)) winner = "draw";
     }
-    if (/红胜|红先胜/.test(text.slice(0, 400)) && result === "unknown") result = "win";
-    else if (/黑胜/.test(text.slice(0, 400)) && result === "unknown") result = "loss";
+    if (/红胜|红先胜/.test(text.slice(0, 400)) && winner === "unknown") winner = "r";
+    else if (/黑胜/.test(text.slice(0, 400)) && winner === "unknown") winner = "b";
 
     // 提取 FEN（残局摆谱起点），无则用标准开局
     const INIT = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
@@ -242,7 +270,7 @@
       side = X.other(side);
     }
     if (!moves.length && fen === INIT) return { error: "没有解析到任何着法，请检查格式", moves, fen };
-    return { moves, result, fen };
+    return { moves, winner, fen };
   }
 
   function doImport() {
@@ -255,10 +283,15 @@
     if (r.error) err.textContent = "⚠️ " + r.error + "（已导入前 " + r.moves.length + " 手）";
     else err.textContent = "";
     const sideSel = document.getElementById("gm-import-side");
+    const mySide = sideSel && sideSel.value ? sideSel.value : "r";
+    // winner（红黑视角）→ result（用户视角）：两种字段都落库，读取方统一走 Games.userResult
+    const result = r.winner === "draw" ? "draw"
+      : r.winner === "unknown" ? "unknown"
+      : (r.winner === mySide ? "win" : "loss");
     const id = api.add({
       ts: Date.now(), level: -1, levelName: "导入棋谱",
-      mySide: sideSel && sideSel.value ? sideSel.value : "r",
-      result: r.result, reason: r.error ? "部分导入" : "外部导入", imported: true,
+      mySide,
+      winner: r.winner, result, reason: r.error ? "部分导入" : "外部导入", imported: true,
       fen: r.fen !== "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1" ? r.fen : undefined,
       moves: r.moves
     });
@@ -302,10 +335,11 @@
       const d = new Date(g.ts);
       const item = document.createElement("div");
       item.className = "gm-item" + (cur && cur.id === g.id && !cur._ann ? " active" : "");
-      const resText = g.result === "win" ? "胜" : g.result === "loss" ? "负" : g.result === "draw" ? "和" : "谱";
+      const ur = userResult(g);
+      const resText = ur === "win" ? "胜" : ur === "loss" ? "负" : ur === "draw" ? "和" : "谱";
       item.innerHTML =
         "<b>" + d.toLocaleString() + "</b>" +
-        "<span class='gm-res " + g.result + "'>" + resText + "</span>" +
+        "<span class='gm-res " + ur + "'>" + resText + "</span>" +
         "<span class='dim'>" + (g.levelName || "") + " · " + (g.imported ? "外部导入" : (g.mySide === "r" ? "执红" : "执黑")) + " · " + g.moves.length + "着" +
         (g.analysis ? " · 已分析" : "") + "</span>";
       item.onclick = () => openGame(g.id);
@@ -326,7 +360,8 @@
       const d = new Date(a.ts);
       const item = document.createElement("div");
       item.className = "gm-item gm-ann-item" + (cur && cur._ann && cur._ann.id === a.id ? " active" : "");
-      const resText = a.game.result === "win" ? "胜" : a.game.result === "loss" ? "负" : a.game.result === "draw" ? "和" : "谱";
+      const ur = userResult(a.game);
+      const resText = ur === "win" ? "胜" : ur === "loss" ? "负" : ur === "draw" ? "和" : "谱";
       item.innerHTML =
         scoreBadge(a.score) +
         "<div class='gm-ann-main'><b>" + escapeHtml2(a.name) + "</b>" +
@@ -350,7 +385,7 @@
     viewIdx = null;
     els.view.classList.remove("hidden");
     els.info.textContent = "「" + a.name + "」 · 私教评分 " + (a.score === null ? "—" : a.score) +
-      " · " + (a.game.result === "win" ? "红胜" : a.game.result === "loss" ? "黑胜" : a.game.result === "draw" ? "和棋" : "结果不详");
+      " · " + winnerText(a.game);
     els.prog.textContent = "";
     renderMoves();
     renderAnalysis();
@@ -363,9 +398,8 @@
     viewIdx = null;
     els.view.classList.remove("hidden");
     const d = new Date(cur.ts);
-    const resText = cur.result === "win" ? "红胜" : cur.result === "loss" ? "黑胜" : cur.result === "draw" ? "和棋" : "结果不详";
     els.info.textContent = d.toLocaleString() + " · " + (cur.levelName || "") + " · " +
-      (cur.imported ? "外部导入" : (cur.mySide === "r" ? "执红" : "执黑")) + " · " + resText +
+      (cur.imported ? "外部导入" : (cur.mySide === "r" ? "执红" : "执黑")) + " · " + winnerText(cur) +
       (cur.reason ? "（" + cur.reason + "）" : "");
     els.prog.textContent = "";
     renderMoves();
@@ -374,12 +408,14 @@
     refreshBoard();
   }
 
-  function positionAt(idx) {
+  /* 重放到第 idx 手后的局面。game 参数显式传入（不读全局 cur）：
+   * 分析期间用户可能打开另一盘棋，回放必须锁定分析开始时的那盘。 */
+  function positionAt(game, idx) {
     const INIT = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-    const { board: b, side } = X.parseFen(cur.fen || INIT);
+    const { board: b, side } = X.parseFen(game.fen || INIT);
     let s = side;
     for (let i = 0; i < idx; i++) {
-      X.applyMove(b, ...X.parseMove(cur.moves[i].m));
+      X.applyMove(b, ...X.parseMove(game.moves[i].m));
       s = X.other(s);
     }
     return { board: b, side: s };
@@ -387,7 +423,7 @@
 
   function refreshBoard() {
     const idx = viewIdx === null ? cur.moves.length : viewIdx;
-    const { board: b, side } = positionAt(idx);
+    const { board: b, side } = positionAt(cur, idx);
     const last = idx > 0 ? X.parseMove(cur.moves[idx - 1].m) : null;
     board.update({ board: b, turn: side, lastMove: last, interactive: false });
     els.moves.querySelectorAll(".mv").forEach((el, i) => el.classList.toggle("cur", viewIdx === i + 1));
@@ -441,13 +477,31 @@
   /* ---------- 分析 ---------- */
   let analyzing = false;
 
+  /* 逐手损分（纯函数，导出供回归测试）。
+   * curve：红方视角评分序列（n+1 个点）；startSide：起始局面行棋方。
+   * 行棋方一律按起始 FEN + 步数推导——存档 moves 通常只有 {m,cn} 没有 side
+   * （历史 bug：读不到 side 就全按黑方算，红方损分为 0），黑先残局也由此正确。 */
+  function computeLosses(curve, startSide) {
+    const perMove = [];
+    for (let i = 0; i < curve.length - 1; i++) {
+      const mover = X.sideAtPly(startSide, i);
+      const before = cpForMover(curve[i], mover);
+      const after = cpForMover(curve[i + 1], mover);
+      const loss = Math.max(0, before - after);
+      perMove.push({ loss: Math.round(loss), cls: classify(loss) });
+    }
+    return perMove;
+  }
+
   async function runAnalysis() {
     if (analyzing || !cur) return;
     if (!Engine.ready) { els.prog.textContent = "引擎不可用，无法分析。"; return; }
     analyzing = true;
     els.analyze.disabled = true;
-    const n = cur.moves.length;
-    const perMove = new Array(n).fill(null);
+    // 锁定要分析的对象：期间打开别的棋谱不影响本次分析，结果也存回这一盘
+    const game = cur;
+    const startSide = X.parseFen(game.fen || "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1").side;
+    const n = game.moves.length;
     const curve = [];   // 红方视角 cp，n+1 个点
     let cancelled = false;
     els.prog.innerHTML = "<button id='gm-cancel'>取消分析</button> <span id='gm-progtext'></span>";
@@ -455,25 +509,22 @@
     try {
       for (let i = 0; i <= n; i++) {
         if (cancelled) break;
-        const { board: b, side } = positionAt(i);
-        const cp = await Engine.evalCp(X.boardToFen(b, side), 220);
+        const { board: b, side } = positionAt(game, i);
+        const cp = await Engine.evalCp(X.boardToFen(b, side), 220, Engine.PRIORITY.REVIEW);
         if (cp === null) throw new Error("引擎未返回评分");
         curve.push(side === "r" ? cp : -cp);
         const t = els.prog.querySelector("#gm-progtext");
         if (t) t.textContent = "分析中 " + i + "/" + n;
       }
-      // 计算每手损益
-      for (let i = 0; i < n; i++) {
-        const before = cpForMover(curve[i], cur.moves[i].side === "r" ? "r" : "b");      // 走子方视角（走前）
-        const after = cpForMover(curve[i + 1], cur.moves[i].side === "r" ? "r" : "b");   // 走子方视角（走后）
-        const loss = Math.max(0, before - after);
-        perMove[i] = { loss: Math.round(loss), cls: classify(loss) };
-      }
+      // 计算每手损益（行棋方按 FEN 推导，红黑/黑先一致）
+      const perMove = computeLosses(curve, startSide);
       if (!cancelled) {
-        if (cur._ann) Annotated.saveAnalysis(cur._ann.id, { curve: curve.map(Math.round), perMove });
-        else api.saveAnalysis(cur.id, { curve: curve.map(Math.round), perMove });
-        renderAnalysis();
-        renderMoves();
+        if (game._ann) Annotated.saveAnalysis(game._ann.id, { curve: curve.map(Math.round), perMove });
+        else api.saveAnalysis(game.id, { curve: curve.map(Math.round), perMove });
+        if (cur === game) {
+          renderAnalysis();
+          renderMoves();
+        }
         renderList();
       }
       els.prog.textContent = cancelled ? "已取消。" : "分析完成。";
@@ -565,7 +616,7 @@
     const d = new Date(cur.ts);
     let lines = ["【象棋教学对局】 " + d.toLocaleString(),
       "难度：" + (cur.levelName || "-") + "  我执：" + (cur.mySide === "r" ? "红" : "黑") +
-      "  结果：" + (cur.result === "win" ? "胜" : cur.result === "loss" ? "负" : "和") + "（" + (cur.reason || "") + "）", ""];
+      "  结果：" + winnerText(cur) + "（" + (cur.reason || "") + "）", ""];
     const row = [];
     cur.moves.forEach((m, i) => {
       if (i % 2 === 0) row.push((i / 2 + 1) + "." + m.cn);
@@ -579,6 +630,7 @@
   }
 
   window.Games = Object.assign(api, {
+    normWinner, userResult, winnerText, _computeLosses: computeLosses, _parseGameText: parseGameText,
     mount,
     show() { renderList(); },
     hide() {},

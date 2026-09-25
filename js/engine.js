@@ -1,8 +1,10 @@
 /* 引擎封装（fairy-stockfish WASM）。
  * Engine.init() -> Promise<bool>          需要 crossOriginIsolated，否则返回 false
- * Engine.hint(fen, ms) -> Promise<"h2e2"|null>
- * Engine.evalCp(fen, ms) -> Promise<number|null>   局面分（走子方视角，单位分）
- * Engine.candidates(fen, ms) -> Promise<[{mv, cp}]>  MultiPV 候选着（走子方视角，好→差）
+ * Engine.hint(fen, ms[, priority]) -> Promise<"h2e2"|null>
+ * Engine.evalCp(fen, ms[, priority]) -> Promise<number|null>   局面分（走子方视角，单位分）
+ * Engine.candidates(fen, ms, pvCount[, priority]) -> Promise<[{mv, cp}]>  MultiPV 候选着（走子方视角，好→差）
+ * 所有请求经内部优先级队列串行执行（见下方 PRIORITY），不会互相 clobber；
+ * Engine.setBackgroundPaused(true/false) 暂停/恢复后台批处理，Engine.cancel/cancelAll 取消排队任务。
  * 坐标：对外统一内部格式（file a-i，rank 0-9）。 */
 (function () {
   "use strict";
@@ -177,19 +179,97 @@
     })();
   }
 
+  /* ---------- 任务调度（单引擎串行 + 优先级 + 取消 + 后台暂停） ----------
+   * 单 WASM worker 同一时间只能跑一个搜索；此前各模块直接竞争同一会话，
+   * 并发时后发请求会把先发请求 clobber 掉（返回空结果）。
+   * 现在所有搜索请求排入优先级队列逐个执行（同优先级先来先服务）：
+   *   PLAY       100  当前对局必须完成的电脑应着
+   *   USER        80  用户主动请求：提示 / 当前题目判分 / 私教推荐
+   *   REVIEW      60  用户发起的复盘分析、私教逐手拆解
+   *   AMBIENT     40  形势条等低优先刷新
+   *   BACKGROUND  20  后台批处理（飞刀分类等），可暂停
+   * setBackgroundPaused(true) 时 BACKGROUND 任务暂不执行，恢复后继续；
+   * 已在搜索中的任务不受影响（movetime 有界，前台最多等一个搜索）。
+   * 取消/超时/不可用分别以 via:"cancelled"/"timeout"/"not-ready" 明确返回。 */
+  const PRIORITY = { PLAY: 100, USER: 80, REVIEW: 60, AMBIENT: 40, BACKGROUND: 20 };
+  let queue = [];           // 待执行任务
+  let running = false;      // 当前是否有搜索在执行
+  let bgPaused = false;     // 后台批处理暂停开关
+  let seqCounter = 0;
+  let rawSearch = go;       // 实际搜索函数（测试可替换，不影响调度逻辑）
+
+  function pump() {
+    if (running) return;
+    queue.sort((a, b) => b.priority - a.priority || a.seq - b.seq);
+    const idx = queue.findIndex(t => !bgPaused || t.priority > PRIORITY.BACKGROUND);
+    if (idx < 0) return;
+    const task = queue.splice(idx, 1)[0];
+    running = true;
+    rawSearch(task.fen, task.movetime, task.pv).then(r => {
+      running = false;
+      task.resolve(r);
+      pump();
+    });
+  }
+
+  function submit(fen, movetime, pv, priority) {
+    return new Promise(resolve => {
+      if (!ready) { resolve({ best: null, cands: [], via: "not-ready" }); return; }
+      queue.push({
+        fen, movetime, pv: pv || 1,
+        priority: priority == null ? PRIORITY.USER : priority,
+        seq: seqCounter++, resolve
+      });
+      pump();
+    });
+  }
+
+  /* 取消仍在排队、且 fn(task) 为真的任务（立即以 via:"cancelled" 结算） */
+  function cancel(fn) {
+    let n = 0;
+    queue = queue.filter(t => {
+      if (!fn(t)) return true;
+      n++;
+      t.resolve({ best: null, cands: [], via: "cancelled" });
+      return false;
+    });
+    return n;
+  }
+
+  function cancelAll() { return cancel(() => true); }
+
+  function setBackgroundPaused(v) {
+    bgPaused = !!v;
+    if (!bgPaused) pump();
+  }
+
   window.Engine = {
     init,
     get ready() { return ready; },
-    hint(fen, movetime) { return go(fen, movetime, 1).then(r => r.best); },
-    async evalCp(fen, movetime) {
-      const { best, cands } = await go(fen, movetime || 400, 1);
-      const c = cands.find(x => x.mv === best) || cands[0];
+    PRIORITY,
+    hint(fen, movetime, priority) { return submit(fen, movetime, 1, priority).then(r => r.best); },
+    async evalCp(fen, movetime, priority) {
+      const r = await submit(fen, movetime || 400, 1, priority);
+      const c = r.cands.find(x => x.mv === r.best) || r.cands[0];
       return c ? c.cp : null;
     },
-    candidates(fen, movetime, pvCount) {
-      return go(fen, movetime, pvCount || 4).then(r => r.cands);
+    candidates(fen, movetime, pvCount, priority) {
+      return submit(fen, movetime, pvCount || 4, priority).then(r => r.cands);
     },
+    setBackgroundPaused,
+    cancel,
+    cancelAll,
     _go: go,
-    get log() { return debugLog.slice(); }
+    get log() { return debugLog.slice(); },
+    /* 无头测试钩子：替换底层搜索 / 观察调度状态 */
+    _test: {
+      setRawSearch(fn) { rawSearch = fn; },
+      setReady(v) { ready = !!v; },
+      reset() { queue = []; running = false; bgPaused = false; rawSearch = go; ready = false; },
+      get queue() { return queue.map(t => ({ fen: t.fen, priority: t.priority, seq: t.seq })); },
+      get busy() { return running; },
+      get bgPaused() { return bgPaused; },
+      submit
+    }
   };
 })();

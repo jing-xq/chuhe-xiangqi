@@ -89,12 +89,13 @@
     const cat = idx.categories.find(c => c.id === "I");
     lessons = cat ? cat.lessons : [];
     renderList();
-    classifyAll();
+    // 注意：分类不在 mount 时启动（否则一开机就占用引擎），改由 show() 触发
   }
 
   async function classifyAll() {
     if (Date.now() - lastClsStart < 30000) return;
     lastClsStart = Date.now();
+    Engine.setBackgroundPaused(false);   // 本页可见：后台批处理恢复执行
     if (!Engine.ready) {
       els.note.textContent = "等待引擎就绪后进行自动分类…";
       for (let i = 0; i < 180 && !Engine.ready; i++) await new Promise(r => setTimeout(r, 500));
@@ -144,10 +145,10 @@
       // j = 对方着子序号（陷阱方可能是红也可能是黑，所以双方步都扫）
       const p1 = posAt(j);
       const fen1 = X.boardToFen(p1.board, p1.side);
-      let cands = await Engine.candidates(fen1, 300, 4);
+      let cands = await Engine.candidates(fen1, 300, 4, Engine.PRIORITY.BACKGROUND);
       if (!cands.length) {
         await new Promise(r => setTimeout(r, 300));
-        cands = await Engine.candidates(fen1, 600, 4);   // 重试一次
+        cands = await Engine.candidates(fen1, 600, 4, Engine.PRIORITY.BACKGROUND);   // 重试一次
       }
       if (!cands.length) break;
       const actual = cands.find(c => c.mv === line[j].m);
@@ -157,7 +158,7 @@
       } else {
         const b2 = X.cloneBoard(p1.board);
         X.applyMove(b2, ...X.parseMove(line[j].m));
-        const e = await Engine.evalCp(X.boardToFen(b2, X.other(p1.side)), 250);
+        const e = await Engine.evalCp(X.boardToFen(b2, X.other(p1.side)), 250, Engine.PRIORITY.BACKGROUND);
         if (e === null) break;
         oppValue = -e;   // 转回对方视角
       }
@@ -166,12 +167,12 @@
 
       // 找到陷阱点：陷阱着 = line[j-1]（对方上一步是陷阱方的关键着）
       const p0 = posAt(j - 1);
-      const cands0 = await Engine.candidates(X.boardToFen(p0.board, p0.side), 300, 4);
+      const cands0 = await Engine.candidates(X.boardToFen(p0.board, p0.side), 300, 4, Engine.PRIORITY.BACKGROUND);
       if (!cands0.length) break;
       // 对方最优防御后的局面（陷阱方走子，评分即陷阱方视角）
       const b3 = X.cloneBoard(p1.board);
       X.applyMove(b3, ...X.parseMove(cands[0].mv));
-      const decline = await Engine.evalCp(X.boardToFen(b3, X.other(p1.side)), 300);
+      const decline = await Engine.evalCp(X.boardToFen(b3, X.other(p1.side)), 300, Engine.PRIORITY.BACKGROUND);
       if (decline === null) break;
       const loss = Math.max(0, cands0[0].cp - decline);
       const cls = loss < 60 ? "飞刀" : loss > 150 ? "骗招" : "险招";
@@ -377,8 +378,13 @@
       label: "💡 提示", fn: async () => {
         const s2 = quiz.boardState();
         if (!s2 || s2.turn !== "student") return;
-        const mv = await Engine.hint(X.boardToFen(s2.board, s2.side), 600);
-        if (mv) board.update({ hint: X.parseMove(mv) });
+        const fen = X.boardToFen(s2.board, s2.side);
+        const mv = await Engine.hint(fen, 600, Engine.PRIORITY.USER);
+        // 提示落地前局面可能已变（重开/走子/切页）
+        const now = quiz.boardState();
+        if (mv && now && now.turn === "student" && X.boardToFen(now.board, now.side) === fen) {
+          board.update({ hint: X.parseMove(mv) });
+        }
       }
     });
     defs.push({ label: "显示答案", fn: () => quiz.showAnswer() });
@@ -419,7 +425,7 @@
       let evalTxt = "";
       if (Engine.ready) {
         setPanel("引擎评估识破后的局面……");
-        const cp = await Engine.evalCp(X.boardToFen(b2, X.other(p1.side)), 400);
+        const cp = await Engine.evalCp(X.boardToFen(b2, X.other(p1.side)), 400, Engine.PRIORITY.USER);
         if (cp !== null) {
           const trapper = X.other(p1.side);
           evalTxt = "此时局面评估：" + (trapper === "r" ? "红方" : "黑方") + "（陷阱方）" +
@@ -458,10 +464,15 @@
     mount,
     show() {
       renderList();
+      Engine.setBackgroundPaused(false);   // 本页可见：允许后台分类执行
       // 引擎就绪后补跑未分类项（30 秒防重）
       if (lessons.some(l => !clsCache[l.id])) classifyAll();
     },
-    hide() { stopLecture(); },
+    hide() {
+      stopLecture();
+      // 后台分类可暂停：离开本页即挂起，排队任务等回来再继续
+      Engine.setBackgroundPaused(true);
+    },
     _classifyOne: meta => classifyOne(meta)
   };
 })();

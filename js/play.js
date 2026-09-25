@@ -132,8 +132,8 @@
     });
     els.start.onclick = startGame;
     els.undo.onclick = undo;
-    els.resign.onclick = () => finish(st.mySide === "r" ? "loss" : "win", "认输");
-    els.draw.onclick = () => finish("draw", "协议和棋");
+    els.resign.onclick = () => { if (st && st.status === "playing") finish("loss", "认输"); };
+    els.draw.onclick = () => { if (st && st.status === "playing") finish("draw", "协议和棋"); };
     els.flip.onclick = () => board.flip();
     els.tolatest.onclick = () => { st.browsing = null; refresh(); };
     els.level.onchange = updateLevelInfo;
@@ -154,12 +154,12 @@
 
   function updateLevelInfo() {
     const lvl = LEVELS[Number(els.level.value)];
-    // 历史战绩
+    // 历史战绩（胜负一律经 Games.userResult 推导，兼容新旧存档字段）
     let w = 0, l = 0, d = 0;
     for (const g of (window.Games ? Games.all() : [])) {
-      if (g.levelName === lvl.name) {
-        if (g.result === "win") w++; else if (g.result === "loss") l++; else d++;
-      }
+      if (g.levelName !== lvl.name) continue;
+      const ur = Games.userResult ? Games.userResult(g) : g.result;
+      if (ur === "win") w++; else if (ur === "loss") l++; else if (ur === "draw") d++;
     }
     const record = (w + l + d) ? `你对该对手战绩：${w}胜${d}和${l}负` : "与该对手尚未交手";
     els.desc.textContent = "🎯 " + lvl.desc + "　·　" + record;
@@ -223,7 +223,9 @@
     st.status = "finished";
     st.result = { result, reason };
     Sound.play(result === "win" ? "check" : result === "draw" ? "draw" : "illegal");
-    const who = result === "draw" ? "和棋" : (result === "win") === (st.mySide === "r") ? "你赢了！" : "你输了";
+    // result 统一为用户视角；winner 为红黑视角（存档与统计的字段约定见 games.js）
+    const winner = result === "draw" ? "draw" : result === "win" ? st.mySide : X.other(st.mySide);
+    const who = result === "draw" ? "和棋" : result === "win" ? "你赢了！" : "你输了";
     if (st.moves.length === 0) {
       els.status.textContent = who + "（" + reason + "）。";
     } else {
@@ -233,7 +235,7 @@
         level: st.level,
         levelName: LEVELS[st.level].name,
         mySide: st.mySide,
-        result, reason,
+        winner, result, reason,
         moves: st.moves.map(m => ({ m: m.m, cn: m.cn }))
       });
     }
@@ -241,37 +243,40 @@
   }
 
   async function engineTurn() {
-    if (st.status !== "playing") return;
-    st.thinking = true;
+    // 会话快照：思考期间「开始对弈」会把 st 换成新局，旧回调凭 st !== s 全部失效，
+    // 绝不能把旧局面的应着落到新局上（历史 bug：只查 status 挡不住重开）
+    const s = st;
+    if (!s || s.status !== "playing") return;
+    s.thinking = true;
     els.status.textContent = "电脑思考中…";
     refresh();
     try {
-      const lvl = LEVELS[st.level];
-      const fen = X.boardToFen(st.board, st.side);
+      const lvl = LEVELS[s.level];
+      const fen = X.boardToFen(s.board, s.side);
       let mvText = null;
       if (lvl.pick === "randomLegal") {
-        const legal = X.legalMoves(st.board, st.side);
+        const legal = X.legalMoves(s.board, s.side);
         mvText = X.moveToText(legal[Math.floor(Math.random() * legal.length)]);
         await new Promise(r => setTimeout(r, 350));   // 模拟思考节奏
       } else {
         mvText = bookMove(lvl);
         if (!mvText) {
-          const cands = await Engine.candidates(fen, lvl.time, lvl.pv || 4);
+          const cands = await Engine.candidates(fen, lvl.time, lvl.pv || 4, Engine.PRIORITY.PLAY);
           if (!cands.length) throw new Error("no candidates");
           mvText = pickMove(cands, lvl);
         }
       }
-      const mv = X.parseMove(mvText);
-      if (st.status !== "playing") return;
-      applyMove(mv);
-      updateEval();
+      if (st !== s || s.status !== "playing") return;   // 期间重开/终局/切走：丢弃这手
+      applyMove(X.parseMove(mvText));
+      updateEval(s);
       if (!checkEnd()) {
         els.status.textContent = "轮到你走棋。";
       }
     } catch (e) {
-      els.status.textContent = "引擎出错：" + e.message;
+      if (st === s) els.status.textContent = "引擎出错：" + e.message;
     }
-    st.thinking = false;
+    if (st !== s) return;
+    s.thinking = false;
     refresh();
   }
 
@@ -318,12 +323,13 @@
     }
   }
 
-  function updateEval() {
+  function updateEval(s) {
     if (!Engine.ready) return;
-    const fen = X.boardToFen(st.board, st.side);
-    Engine.evalCp(fen, 250).then(cp => {
-      if (cp === null || !st) return;
-      const mine = st.side === st.mySide ? cp : -cp;   // 我方视角
+    const fen = X.boardToFen(s.board, s.side);
+    Engine.evalCp(fen, 250, Engine.PRIORITY.AMBIENT).then(cp => {
+      // 评分落地前可能已重开/终局：旧局的评分不刷新到新局的形势条
+      if (cp === null || st !== s) return;
+      const mine = s.side === s.mySide ? cp : -cp;   // 我方视角
       const pct = Math.max(4, Math.min(96, 50 + mine / 12));
       els.evalfill.style.width = pct + "%";
       els.evalfill.style.background = mine >= 0 ? "#d4a03c" : "#666";

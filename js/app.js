@@ -438,8 +438,12 @@
     const st = quiz.boardState();
     if (!st || st.turn !== "student") return;
     const fen = X.boardToFen(st.board, st.side);
-    const mv = await Engine.hint(fen, 700);
-    if (mv) board.update({ hint: X.parseMove(mv) });
+    const mv = await Engine.hint(fen, 700, Engine.PRIORITY.USER);
+    // 等待提示期间用户可能已重置/走子：局面变了就不落提示箭头
+    const now = quiz.boardState();
+    if (mv && now && now.turn === "student" && X.boardToFen(now.board, now.side) === fen) {
+      board.update({ hint: X.parseMove(mv) });
+    }
   };
 
   /* ---------- 键盘 ---------- */

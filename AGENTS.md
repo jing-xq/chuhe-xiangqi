@@ -11,11 +11,18 @@
 
 ## 技术栈
 
-- **前端**：原生 ES5 风格 JavaScript（IIFE 包裹、`"use strict"`、无模块打包器），Canvas 棋盘，无框架、无 package.json、无 npm。
+- **前端**：原生 JavaScript（IIFE 包裹、`"use strict"`、无模块打包器；实际使用 ES2017+ 语法，需现代浏览器），Canvas 棋盘，无框架、无 package.json、无 npm。
 - **引擎**：`engine/` 下 fairy-stockfish WASM（多线程 pthread）+ 官方象棋 NNUE 网络 `engine/nnue/xiangqi.nnue`，全部本地加载，离线可用。
 - **AI 私教**：可选接 OpenAI 兼容 API（默认 DeepSeek），Key 只存浏览器 localStorage；另有不联网的本地私教 `js/coachbrain.js`（引擎数据 + 规则级棋理知识库翻译）。
 - **数据工具链**：Python（课程/谱库转换、校验）+ Node（谱库引擎驱动生成、逻辑测试）。
 - **持久化**：学习进度、棋谱、习惯档案、飞刀分类、开局掌握度全部存 localStorage（换浏览器/清缓存即重置）。
+
+## 胜负与评分字段约定（2026-09 稳定性批次统一）
+
+- 对局存档：`winner`（"r"|"b"|"draw"，红黑视角获胜方）+ `mySide`（用户执方）+ `reason`；用户视角胜负一律经 `Games.userResult(rec)` 推导，`result`（"win"|"loss"|"draw"）仅作兼容保留（用户视角）。
+- 旧存档迁移：`imported:true` 的旧 `result` 是红方视角（win=红胜），对弈/陪练旧 `result` 是用户视角；`Games.normWinner` 按来源推导，不得无条件翻转。
+- 行棋方与评分视角：棋谱 moves 只存 `{m,cn}`，行棋方必须用 `Xiangqi.sideAtPly(startSide, ply)` 按 FEN 推导；走子方分↔红方分转换统一走 `Xiangqi.cpToRed`。
+- 引擎调度：所有搜索请求经 `Engine` 内部优先级队列串行（PLAY=100 对局应着 / USER=80 用户提示判分 / REVIEW=60 复盘 / AMBIENT=40 形势条 / BACKGROUND=20 后台批处理），`Engine.setBackgroundPaused(true)` 可暂停后台批处理（Traps.hide 时调用）。新增引擎调用须带优先级。
 
 ## 代码组织（js/，全局脚本按依赖顺序在 index.html 中引入）
 
@@ -32,7 +39,7 @@
 | `annotated.js` | `Annotated` | 已讲解棋谱存档（取名/评分/六维雷达图） |
 | `coachbrain.js` | `CoachBrain` | 本地私教大脑（引擎拆解 + 棋理知识库，零 token） |
 | `games.js` | `Games` | 棋谱库 + 复盘分析（逐着评分/形势曲线/问题着） |
-| `play.js` | `Play` | 人机对弈（八档职业分段，温度抽样控制失误率） |
+| `play.js` | `Play` | 人机对弈（八档职业分段：MultiPV 候选按名次概率选着 + 随机漏着注入控制失误率，未经真人棋力标定） |
 | `spar.js` | `Spar` | 私教陪练（引擎对手 + 本地特大实时口述） |
 | `guide.js` | `Guide` | 新手入门交互课（12 节） |
 | `traps.js` | `Traps` | 飞刀骗招（引擎自动分类：飞刀 vs 骗招） |
@@ -62,9 +69,12 @@
 
 ## 测试
 
-- **唯一正式测试**：`node tools/test_opening_logic.js` —— `js/opening.js` 的无头逻辑自测（Node 桩环境模拟浏览器），校验用户节点统计、掌握度公式（50·coverage + 30·punishRate + 20·min(games/5,1)，覆盖率分母为 offeredIds）与谱更新修剪。改动 `opening.js` 或 `build_openings.py` 后应跑它。
-- 前端无自动化测试体系；验证靠起服务器在浏览器里走完整流程（跟谱/对弈/分析/私教）。
-- 无部署流程——纯静态文件本地运行，`git` 是唯一版本控制（单一 master 分支，一次提交历史）。
+- **正式测试**：
+  - `node tools/test_opening_logic.js` —— `js/opening.js` 的无头逻辑自测（Node 桩环境模拟浏览器），校验用户节点统计、掌握度公式（50·coverage + 30·punishRate + 20·min(games/5,1)，覆盖率分母为 offeredIds）与谱更新修剪。改动 `opening.js` 或 `build_openings.py` 后应跑它。
+  - `node tools/test_stability.js` —— 稳定性批次回归（对应规划文档 9.2 十条用例）：入门课 FEN 与任务判定（`Guide._steps`/`Guide._judge`）、胜负字段迁移（`Games.userResult`/`normWinner`）、损分视角（`Games._computeLosses`）、练习定时器取消、引擎调度器串行/优先级/取消/后台暂停、`CoachBrain._replay` 帧一致性。改动 guide/games/quiz/engine/coachbrain 后应跑它。
+- `python -B tools/build_openings.py --check` —— 开局谱库校验（CI 式快速检查）。
+- 前端其余流程无自动化测试体系；验证靠起服务器在浏览器里走完整流程（跟谱/对弈/分析/私教）。
+- 无部署流程——纯静态文件本地运行，`git` 是唯一版本控制。
 
 ## 代码风格约定
 
