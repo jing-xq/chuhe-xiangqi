@@ -292,8 +292,10 @@
     return FILES[mv[0]] + mv[1] + FILES[mv[2]] + mv[3];
   }
 
+  const INIT_FEN = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+
   window.Xiangqi = {
-    RED, BLACK, FILES, other, inBoard, inPalace, crossedRiver, cloneBoard,
+    RED, BLACK, FILES, INIT_FEN, other, inBoard, inPalace, crossedRiver, cloneBoard,
     parseFen, boardToFen, findKing, kingsFace, applyMove, attackedBy,
     pseudoMoves, isLegal, legalMoves, isCheck, isCheckmate, parseMove, moveToText,
     repetitionResult

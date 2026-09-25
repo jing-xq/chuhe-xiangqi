@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+tools/_eng/
+tools/_work/
+tools/build_failures.log

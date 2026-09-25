@@ -128,32 +128,42 @@
 
   function go(fen, movetime, pvCount) {
     if (!ready) return Promise.resolve({ best: null, cands: [], via: "not-ready" });
-    return new Promise(resolve => {
-      // 校验候选着是否属于当前局面：快速连续 go 时，上一局面的残留 info 行可能混入
-      let posLegal = null;
-      try {
-        const pos = window.Xiangqi.parseFen(fen);
-        posLegal = mv => {
-          try { return window.Xiangqi.isLegal(pos.board, pos.side, window.Xiangqi.parseMove(mv)); }
-          catch (e) { return false; }
-        };
-      } catch (e) { posLegal = () => true; }
-      const mySession = { infos: new Map(), maxDepth: 0, resolve: r => {
-        if (posLegal) {
-          r.cands = r.cands.filter(c => c.mv && posLegal(c.mv));
-          if (r.best && !posLegal(r.best)) r.best = r.cands.length ? r.cands[0].mv : null;
-        }
-        resolve(r);
-      } };
+    return (async () => {
       const mt = movetime || 800;
-      send("stop");   // 取消可能残留的搜索
+      // 上一局搜索仍在进行时：先发 stop 并等它结算。等待期间旧会话仍挂在
+      // session 上，它自己的 bestmove（或超时兜底）会完成结算——避免旧 bestmove
+      // 迟到后算到新会话头上、或旧调用永久挂起。
+      if (session) {
+        send("stop");
+        await waitFor("bestmove", 2500);
+      }
       if (pvCount && pvCount !== multipv) {
         multipv = pvCount;
         send("setoption name MultiPV value " + pvCount);
-        send("isready");
       }
-      // stop 会触发引擎回送旧局面的 bestmove；稍等再挂接新会话，避免误结算
-      setTimeout(() => {
+      // stop 后引擎迟迟不结算（异常状态）：强制清掉旧会话，绝不让调用方挂死
+      if (session) {
+        const s = session;
+        session = null;
+        s.resolve({ best: null, cands: [], via: "clobbered" });
+      }
+      return await new Promise(resolve => {
+        // 校验候选着是否属于当前局面：快速连续 go 时，上一局面的残留 info 行可能混入
+        let posLegal = null;
+        try {
+          const pos = window.Xiangqi.parseFen(fen);
+          posLegal = mv => {
+            try { return window.Xiangqi.isLegal(pos.board, pos.side, window.Xiangqi.parseMove(mv)); }
+            catch (e) { return false; }
+          };
+        } catch (e) { posLegal = () => true; }
+        const mySession = { infos: new Map(), maxDepth: 0, resolve: r => {
+          if (posLegal) {
+            r.cands = r.cands.filter(c => c.mv && posLegal(c.mv));
+            if (r.best && !posLegal(r.best)) r.best = r.cands.length ? r.cands[0].mv : null;
+          }
+          resolve(r);
+        } };
         session = mySession;
         send("position fen " + fen);
         send("go movetime " + mt);
@@ -163,8 +173,8 @@
             mySession.resolve({ best: null, cands: [], via: "timeout" });
           }
         }, mt + 6000);
-      }, 80);
-    });
+      });
+    })();
   }
 
   window.Engine = {

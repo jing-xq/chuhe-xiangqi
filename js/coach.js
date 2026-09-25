@@ -214,6 +214,7 @@
   function setRefBar(mode) {
     els.refPrev.classList.toggle("hidden", mode === "sandbox");
     els.refNext.classList.toggle("hidden", mode === "sandbox");
+    els.refJumpBox.classList.toggle("hidden", mode === "sandbox");
     els.refSandbox.classList.toggle("hidden", mode === "sandbox");
     els.refSbend.classList.toggle("hidden", mode !== "sandbox");
     els.refSbsend.classList.toggle("hidden", mode !== "sandbox" || !refSandbox || !refSandbox.moves.length);
@@ -225,6 +226,23 @@
     Sound.play("click");
     refBase.ply = Math.max(0, Math.min(refBase.moves.length, refBase.ply + d));
     refreshRefBoard();
+  }
+
+  /* 输入手数跳转（口径与标签 第N/M手 一致：ply，0=初始局面） */
+  function refJumpInput() {
+    if (!refBase || refSandbox) return;
+    const raw = els.refJump.value.trim();
+    const n = Number(raw);
+    if (raw === "" || !Number.isInteger(n) || n < 0 || n > refBase.moves.length) {
+      Sound.play("illegal");
+      els.refJump.classList.remove("co-bad");
+      void els.refJump.offsetWidth;   // 重启动画
+      els.refJump.classList.add("co-bad");
+      return;
+    }
+    els.refJump.classList.remove("co-bad");
+    refJump(n);
+    els.refJump.select();
   }
 
   function sandboxStart() {
@@ -280,6 +298,10 @@
             <div class="co-refbar">
               <button id="co-ref-prev" title="上一步">◀</button>
               <button id="co-ref-next" title="下一步">▶</button>
+              <span id="co-ref-jumpbox">
+                <input id="co-ref-jump" type="number" min="0" step="1" placeholder="跳至第几手" title="输入手数（与上方 第N/M手 同口径），回车跳转">
+                <button id="co-ref-jumpbtn" title="跳转到该手">跳转</button>
+              </span>
               <button id="co-ref-sandbox">🧪 自由推导</button>
               <button id="co-ref-sbend" class="hidden">✔ 结束推导</button>
               <button id="co-ref-sbsend" class="hidden">📤 发给私教</button>
@@ -387,6 +409,9 @@
       refLabel: container.querySelector("#co-reflabel"),
       refPrev: container.querySelector("#co-ref-prev"),
       refNext: container.querySelector("#co-ref-next"),
+      refJumpBox: container.querySelector("#co-ref-jumpbox"),
+      refJump: container.querySelector("#co-ref-jump"),
+      refJumpBtn: container.querySelector("#co-ref-jumpbtn"),
       refSandbox: container.querySelector("#co-ref-sandbox"),
       refSbend: container.querySelector("#co-ref-sbend"),
       refSbsend: container.querySelector("#co-ref-sbsend"),
@@ -396,6 +421,10 @@
     container.querySelector("#co-refflip").onclick = () => refBoard.flip();
     els.refPrev.onclick = () => refStep(-1);
     els.refNext.onclick = () => refStep(1);
+    els.refJumpBtn.onclick = refJumpInput;
+    els.refJump.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); refJumpInput(); }
+    });
     els.refSandbox.onclick = sandboxStart;
     els.refSbend.onclick = sandboxEnd;
     els.refSbsend.onclick = sandboxSend;

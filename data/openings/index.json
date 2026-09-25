@@ -1,0 +1,132 @@
+{
+ "systems": [
+  {
+   "id": "cp-fgm",
+   "name": "中炮对反宫马",
+   "redOpening": "当头炮",
+   "blackDefense": "反宫马",
+   "file": "data/openings/cp-fgm.json",
+   "mainlineEndPly": 20,
+   "mainlinePlies": 20,
+   "vars": 2,
+   "comments": 16,
+   "userNodes": {
+    "r": 16,
+    "b": 16
+   },
+   "level": "入门"
+  },
+  {
+   "id": "cp-pfm",
+   "name": "中炮过河车对屏风马",
+   "redOpening": "当头炮",
+   "blackDefense": "屏风马",
+   "file": "data/openings/cp-pfm.json",
+   "mainlineEndPly": 20,
+   "mainlinePlies": 20,
+   "vars": 2,
+   "comments": 17,
+   "userNodes": {
+    "r": 16,
+    "b": 16
+   },
+   "level": "入门"
+  },
+  {
+   "id": "cp-spo",
+   "name": "顺炮直车对横车",
+   "redOpening": "当头炮",
+   "blackDefense": "顺炮",
+   "file": "data/openings/cp-spo.json",
+   "mainlineEndPly": 20,
+   "mainlinePlies": 20,
+   "vars": 2,
+   "comments": 16,
+   "userNodes": {
+    "r": 16,
+    "b": 16
+   },
+   "level": "进阶"
+  },
+  {
+   "id": "fx-zp",
+   "name": "飞相局对中炮",
+   "redOpening": "飞相局",
+   "blackDefense": "中炮",
+   "file": "data/openings/fx-zp.json",
+   "mainlineEndPly": 20,
+   "mainlinePlies": 20,
+   "vars": 2,
+   "comments": 16,
+   "userNodes": {
+    "r": 16,
+    "b": 16
+   },
+   "level": "入门"
+  },
+  {
+   "id": "gg-zp",
+   "name": "过宫炮对中炮",
+   "redOpening": "过宫炮",
+   "blackDefense": "中炮",
+   "file": "data/openings/gg-zp.json",
+   "mainlineEndPly": 20,
+   "mainlinePlies": 20,
+   "vars": 2,
+   "comments": 16,
+   "userNodes": {
+    "r": 16,
+    "b": 16
+   },
+   "level": "进阶"
+  },
+  {
+   "id": "qm-zp",
+   "name": "起马局对中炮",
+   "redOpening": "起马局",
+   "blackDefense": "中炮",
+   "file": "data/openings/qm-zp.json",
+   "mainlineEndPly": 20,
+   "mainlinePlies": 20,
+   "vars": 2,
+   "comments": 16,
+   "userNodes": {
+    "r": 16,
+    "b": 16
+   },
+   "level": "进阶"
+  },
+  {
+   "id": "xz-dbj",
+   "name": "仙人指路对兵局",
+   "redOpening": "仙人指路",
+   "blackDefense": "对兵局",
+   "file": "data/openings/xz-dbj.json",
+   "mainlineEndPly": 20,
+   "mainlinePlies": 20,
+   "vars": 2,
+   "comments": 16,
+   "userNodes": {
+    "r": 16,
+    "b": 16
+   },
+   "level": "入门"
+  },
+  {
+   "id": "xz-zdc",
+   "name": "仙人指路对卒底炮",
+   "redOpening": "仙人指路",
+   "blackDefense": "卒底炮",
+   "file": "data/openings/xz-zdc.json",
+   "mainlineEndPly": 20,
+   "mainlinePlies": 20,
+   "vars": 2,
+   "comments": 16,
+   "userNodes": {
+    "r": 16,
+    "b": 16
+   },
+   "level": "入门"
+  }
+ ]
+}

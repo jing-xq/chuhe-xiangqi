@@ -1,6 +1,7 @@
 /* Canvas 棋盘组件。
  * const board = Board.create(canvas, { onMove(f0,r0,f1,r1) });
- * board.update({ board, lastMove, turn, interactive, hint, selected });
+ * board.update({ board, lastMove, turn, interactive, hint, selected, arrow });
+ * arrow: {from:[f,r], to:[f,r]} 金色指引箭头（私教推荐用）
  * board.flip() 切换红黑视角；board.destroy() 注销事件。 */
 (function () {
   "use strict";
@@ -158,6 +159,33 @@
           ctx.arc(cx, cy, px * 0.16, 0, Math.PI * 2);
           ctx.fill();
         }
+      }
+      // 私教指引箭头（金色半透明粗线 + 三角箭头，压在棋子下层）
+      if (state.arrow) {
+        const [ax, ay] = sqXY(state.arrow.from[0], state.arrow.from[1]);
+        const [bx, by] = sqXY(state.arrow.to[0], state.arrow.to[1]);
+        const ang = Math.atan2(by - ay, bx - ax);
+        const headLen = px * 0.5, headHalf = px * 0.22;
+        const sx = ax + Math.cos(ang) * px * 0.34;
+        const sy = ay + Math.sin(ang) * px * 0.34;
+        const tipX = bx - Math.cos(ang) * px * 0.14;
+        const tipY = by - Math.sin(ang) * px * 0.14;
+        ctx.strokeStyle = STYLE.hint;
+        ctx.lineWidth = px * 0.15;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(tipX - Math.cos(ang) * headLen * 0.55, tipY - Math.sin(ang) * headLen * 0.55);
+        ctx.stroke();
+        ctx.fillStyle = STYLE.hint;
+        ctx.beginPath();
+        ctx.moveTo(tipX, tipY);
+        ctx.lineTo(tipX - Math.cos(ang) * headLen - Math.sin(ang) * headHalf,
+                   tipY - Math.sin(ang) * headLen + Math.cos(ang) * headHalf);
+        ctx.lineTo(tipX - Math.cos(ang) * headLen + Math.sin(ang) * headHalf,
+                   tipY - Math.sin(ang) * headLen - Math.cos(ang) * headHalf);
+        ctx.closePath();
+        ctx.fill();
       }
 
       // 棋子（动画中的走子先不画在终点，由动画层绘制）

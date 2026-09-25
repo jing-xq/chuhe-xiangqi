@@ -461,7 +461,7 @@
       // 引擎就绪后补跑未分类项（30 秒防重）
       if (lessons.some(l => !clsCache[l.id])) classifyAll();
     },
-    hide() {},
+    hide() { stopLecture(); },
     _classifyOne: meta => classifyOne(meta)
   };
 })();

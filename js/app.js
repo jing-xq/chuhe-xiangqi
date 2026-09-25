@@ -34,10 +34,16 @@
   const board = Board.create(canvas, { onMove: onBoardMove });
 
   /* ---------- 视图切换 ---------- */
-  const VIEWS = ["lessons", "guide", "traps", "play", "games", "coach"];
+  const VIEWS = ["lessons", "guide", "traps", "opening", "play", "spar", "games", "coach"];
   let curView = "lessons";
 
   function showView(name) {
+    // 切走前先通知旧视图收尾（停 autoplay / 讲棋定时器等）
+    if (curView !== name) {
+      const prevObj = { guide: "Guide", traps: "Traps", opening: "Opening", play: "Play", spar: "Spar", games: "Games", coach: "Coach" }[curView];
+      const po = prevObj && window[prevObj];
+      if (po && typeof po.hide === "function") po.hide();
+    }
     curView = name;
     for (const v of VIEWS) {
       $("view-" + v).classList.toggle("hidden", v !== name);
@@ -49,7 +55,9 @@
     document.querySelector("aside").style.display = name === "lessons" ? "" : "none";
     if (name === "guide") { Guide.show(); $("welcome-banner").classList.add("hidden"); }
     else if (name === "traps") Traps.show();
+    else if (name === "opening") Opening.show();
     else if (name === "play") Play.show();
+    else if (name === "spar") Spar.show();
     else if (name === "games") Games.show();
     else if (name === "coach") Coach.show();
     else board.redraw();
@@ -70,7 +78,9 @@
     // 挂载其余视图
     Guide.mount($("view-guide"));
     Traps.mount($("view-traps"));
+    Opening.mount($("view-opening"));
     Play.mount($("view-play"));
+    Spar.mount($("view-spar"));
     Games.mount($("view-games"));
     Coach.mount($("view-coach"));
     showView("lessons");
@@ -80,6 +90,7 @@
     Engine.init().then(ok => {
       refreshEngineStatus(ok ? "就绪" : "不可用", ok);
       if (curView === "play") Play.show();
+      if (curView === "opening") Opening.show();
     });
   }
 
@@ -311,7 +322,7 @@
         frag.appendChild(vline);
       }
       pathIdx.push(0);
-      nodes = ch.length ? ch[0].ch || [] : [];
+      nodes = ch.length ? [ch[0]] : [];
       depth++;
     }
     box.appendChild(frag);
