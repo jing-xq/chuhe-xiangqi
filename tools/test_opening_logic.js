@@ -330,5 +330,193 @@ console.log("⑥ 私教陪练：moveIntent / intentPhrase / positionSnapshot / i
   }
 }
 
+// ---- ⑦ 私教讲解层新增纯函数：pickVariant 反重复选取 ----
+console.log("⑦ 讲解层：pickVariant");
+{
+  const SP = sandbox.window.SparDebug;
+  // 1) 优先挑最近没说过的条目
+  {
+    const list = ["甲", "乙", "丙"];
+    let allFresh = true;
+    for (let i = 0; i < 30; i++) if (SP.pickVariant(list, ["甲"]) === "甲") allFresh = false;
+    check("recent 含甲时不再选甲", allFresh);
+  }
+  // 2) 全部说过时避开最近一条
+  {
+    const got = SP.pickVariant(["甲", "乙"], ["甲", "乙"]);
+    check("全说过 → 返回与最近一条不同的「甲」", got === "甲", got);
+  }
+  // 3) recent 为空/数组不合法时仍能返回池内成员，空池返回空串
+  {
+    const got = SP.pickVariant(["甲", "乙"], []);
+    check("recent 为空 → 返回池内成员", got === "甲" || got === "乙", got);
+    check("空池 → 返回空串", SP.pickVariant([], ["甲"]) === "");
+  }
+}
+
+// ---- ⑧ 私教讲解层：quietIntent 安静着意图 / quietText 旁白组装 ----
+console.log("⑧ 讲解层：quietIntent / quietText");
+{
+  const SP = sandbox.window.SparDebug;
+  const parse = fen => X.parseFen(fen).board;
+  // 1) 占线：车进肋道（无吃子/将军/新攻击）→ line
+  {
+    const b = parse("4k4/9/9/9/9/9/9/9/9/R7K w - - 0 1");
+    check("车 a0d0 占肋 → line", SP.quietIntent(b, "r", "a0d0").kind === "line",
+      JSON.stringify(SP.quietIntent(b, "r", "a0d0")));
+  }
+  // 2) 保子：受攻无根炮旁补根 → defend（与 moveIntent 的 rescue 同局面）
+  {
+    const b = parse("4k4/9/9/9/9/2n6/9/1C7/9/R7K w - - 0 1");
+    check("车 a0b0 给受攻炮补根 → defend", SP.quietIntent(b, "r", "a0b0").kind === "defend",
+      JSON.stringify(SP.quietIntent(b, "r", "a0b0")));
+  }
+  // 3) 简化：车攻对方有根车（等价邀兑）→ simplify
+  {
+    const b = parse("4r4/7k1/9/4r4/9/9/9/9/9/R7K w - - 0 1");
+    check("车 a0a6 邀兑有根车 → simplify", SP.quietIntent(b, "r", "a0a6").kind === "simplify",
+      JSON.stringify(SP.quietIntent(b, "r", "a0a6")));
+  }
+  // 4) 谋兵：兵过河后新捉一卒 → pawn；将军/吃子不属安静着 → null
+  {
+    const b = parse("4k4/9/9/9/5p3/4P4/9/9/9/7K1 w - - 0 1");
+    check("兵 e4e5 新捉边卒 → pawn", SP.quietIntent(b, "r", "e4e5").kind === "pawn",
+      JSON.stringify(SP.quietIntent(b, "r", "e4e5")));
+    const b2 = parse("4k4/9/9/9/4R4/9/9/9/9/K8 w - - 0 1");
+    check("将军着法 → quietIntent 返回 null", SP.quietIntent(b2, "r", "e5e8") === null);
+  }
+  // 5) 过门：车升到对方底线新捉无根马 → gate；quietText 全部变体 ≤30 字
+  {
+    const b = parse("1n2k4/9/9/9/9/9/9/9/9/R7K w - - 0 1");
+    check("车 a0a9 新捉无根马 → gate", SP.quietIntent(b, "r", "a0a9").kind === "gate",
+      JSON.stringify(SP.quietIntent(b, "r", "a0a9")));
+    let allShort = true;
+    for (const pool of Object.values(SP.quietPhrases || {})) {
+      for (const v of pool) if ([...("对手走「车9平8」：" + v)].length > 30) allShort = false;
+    }
+    check("quietText 组装全部 ≤30 字", allShort);
+    check("quietText 无 recent → 取首条（确定性）",
+      SP.quietText("车9平8", "gate") === "对手走「车9平8」：是过门——先手铺路，下一步多半有后手",
+      SP.quietText("车9平8", "gate"));
+  }
+}
+
+// ---- ⑨ 私教讲解层：intentPhrase 变体池（T3） ----
+console.log("⑨ 讲解层：intentPhrase 变体");
+{
+  const SP = sandbox.window.SparDebug;
+  // 1) 白吃：recent 含原版短语时换新变体，且新变体被记入 recent
+  {
+    const it = { kind: "freeCapture", to: [4, 5], piece: "r", side: "r", capture: { name: "卒" } };
+    const recent = ["白吃一卒"];
+    const got = SP.intentPhrase(it, recent);
+    check("recent 含原版 → 换新变体", got !== "白吃一卒" && got.indexOf("卒") >= 0, got);
+    check("选中的变体已记入 recent", recent.indexOf(got) >= 0 && recent.length === 2, JSON.stringify(recent));
+  }
+  // 2) 将军：变体池全部含「将军」（不跨类），recent 轮换后仍成立
+  {
+    const it = { kind: "check", to: [4, 8], piece: "r", side: "r", check: true };
+    const recent = [];
+    let ok = true;
+    for (let i = 0; i < 20; i++) if (SP.intentPhrase(it, recent).indexOf("将军") < 0) ok = false;
+    check("check 变体恒含「将军」", ok);
+  }
+  // 3) 捉子：无 recent → 原版短语原样；有 recent → 恒含「捉」且不等于原版
+  {
+    const it = { kind: "attack", to: [4, 4], piece: "r", side: "r", attack: { name: "炮" } };
+    check("无 recent → 原版「捉你的无根炮」", SP.intentPhrase(it) === "捉你的无根炮", SP.intentPhrase(it));
+    const recent = ["捉你的无根炮"];
+    let ok = true, prev = null;
+    for (let i = 0; i < 20; i++) {
+      const v = SP.intentPhrase(it, recent);
+      if (v.indexOf("捉") < 0) ok = false;   // 不跨类
+      if (v === prev) ok = false;            // 不连续重复（LRU 回退保证）
+      prev = v;
+    }
+    check("recent 轮换 → 恒含「捉」且不连续重复", ok);
+  }
+}
+
+// ---- ⑩ 私教讲解层：buildMistakeMsg 新增归因（T4） ----
+console.log("⑩ 讲解层：失误归因扩充");
+{
+  const SP = sandbox.window.SparDebug;
+  const X2 = sandbox.window.Xiangqi;
+  const parse = fen => X2.parseFen(fen).board;
+  // 黑车 a6 无根，红车 a0 可白吃（引擎正着 a0a6 = 吃 ≥400 大子）
+  const b = parse("4k4/9/9/r8/9/9/9/9/9/R7K w - - 0 1");
+  const res = { loss: 150, bestMv: "a0a6", bestLine: ["a0a6"], bestCp: 600, actualCp: 0 };
+  // 1) 错过对手失误：上一手对手摆动 ≥150
+  {
+    const msg = SP.buildMistakeMsg("车一平二", res, { m: "a0b0", cn: "车一平二" }, b, "r", 200);
+    check("oppSwing≥150 → 错过对手失误归因", msg.indexOf("200 分") >= 0 && msg.indexOf("车九进六") >= 0, msg);
+  }
+  // 2) 错过一步得子：正着吃 ≥400 大子而实战没吃（oppSwing 未知不触发 1.5）
+  {
+    const msg = SP.buildMistakeMsg("车一平二", res, { m: "a0b0", cn: "车一平二" }, b, "r", null);
+    check("正着白吃大子未吃 → 错过得子归因", msg.indexOf("白吃") >= 0 && msg.indexOf("车九进六") >= 0, msg);
+  }
+  // 3) 送子归因回归不受影响（优先级仍在最前）
+  {
+    const msg = SP.buildMistakeMsg("车一进三", res, { m: "a0a3", cn: "车一进三" }, b, "r", 200);
+    check("送子归因优先级不变", msg.indexOf("送到了对方火力下") >= 0, msg);
+  }
+}
+
+// ---- ⑪ 私教讲解层：phaseOf2 阶段感知（T5） ----
+console.log("⑪ 讲解层：phaseOf2");
+{
+  const SP = sandbox.window.SparDebug;
+  const parse = fen => sandbox.window.Xiangqi.parseFen(fen).board;
+  // 1) 初始局面 → 开局
+  {
+    const b = parse("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1");
+    check("初始局面 ply=0 → open", SP.phaseOf2(b, 0) === "open", SP.phaseOf2(b, 0));
+  }
+  // 2) 子力稀疏（仅余一车）→ 残局（阈值口径同 coachbrain.ENDGAME_MAT）
+  {
+    const b = parse("4k4/9/9/9/9/9/9/9/9/1R5K1 w - - 0 1");
+    check("剩一车 → end", SP.phaseOf2(b, 40) === "end", SP.phaseOf2(b, 40));
+  }
+  // 3) 子力充足但已过开局期 → 中局；ply 缺省时非残局一律按开局（测试确定性）
+  {
+    const b = parse("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1");
+    check("子力充足 ply=25 → mid", SP.phaseOf2(b, 25) === "mid", SP.phaseOf2(b, 25));
+    check("ply 缺省 → open", SP.phaseOf2(b) === "open", SP.phaseOf2(b));
+  }
+}
+
+// ---- ⑫ 私教讲解层：cooldown 冷却（T6） ----
+console.log("⑫ 讲解层：cooldown");
+{
+  const SP = sandbox.window.SparDebug;
+  const parse = fen => sandbox.window.Xiangqi.parseFen(fen).board;
+  // 1) 首次讲返回 true 并记账，同话题再讲返回 false
+  {
+    const log = {};
+    check("首次 cooldown → true", SP.cooldown("t1", log) === true);
+    check("同话题再讲 → false", SP.cooldown("t1", log) === false);
+  }
+  // 2) 不同话题互不影响
+  {
+    const log = {};
+    SP.cooldown("a", log);
+    check("不同话题独立记账", SP.cooldown("b", log) === true && SP.cooldown("a", log) === false);
+  }
+  // 3) 未提供 sayLog → 恒 true 不记账（无头测试/兼容旧调用）
+  {
+    check("无 sayLog 恒 true", SP.cooldown("x", null) === true && SP.cooldown("x", null) === true);
+  }
+  // 4) positionSnapshot：建议句讲过一次后被冷却，特征句仍正常
+  {
+    const b0 = parse("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1");
+    const sayLog = {};
+    const s1 = SP.positionSnapshot(b0, "r", 0, [], 0, undefined, sayLog);
+    check("首次快照含建议句", s1.text.indexOf("炮镇中路") >= 0, s1.text);
+    const s2 = SP.positionSnapshot(b0, "r", 0, [], 0, undefined, sayLog);
+    check("同局再快照 → 建议句被冷却省略", s2.text.indexOf("炮镇中路") < 0, s2.text);
+  }
+}
+
 console.log(failures ? "\n共 " + failures + " 项失败" : "\n全部通过");
 process.exit(failures ? 1 : 0);

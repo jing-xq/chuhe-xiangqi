@@ -272,8 +272,10 @@
     return intent;
   }
 
-  /* intent → 中文短语（「白吃中卒」「沉底将军」「捉你的无根炮」「出车占肋」） */
-  function intentPhrase(intent) {
+  /* intent → 中文短语（T3：每类扩为 3~5 个变体）。
+   * 各类首条=原版短语（历史断言/旧调用兼容），其余为同义变体，不得跨类；
+   * recent 提供时走 pickVariant 随机选并记入（防重复），缺省取首条（测试确定性）。 */
+  function intentPhrase(intent, recent) {
     if (!intent || !intent.to) return "藏着手段";
     const p = intent.piece, nm = NAME_OF[p] || "子";
     const side = intent.side || "r";
@@ -283,19 +285,42 @@
     const center = t[0] === 4;
     const river = t[1] === (side === "r" ? 4 : 5);
     const k = intent.kind;
-    if (k === "check") return (bottom && (p === "r" || p === "c") ? "沉底" : center && p === "c" ? "镇中" : "") + "将军";
-    if (k === "freeCapture") return "白吃一" + (intent.capture ? intent.capture.name : "子");
-    if (k === "trade") return "兑一" + (intent.capture ? intent.capture.name : "子");
-    if (k === "sac") return "贪吃一" + (intent.capture ? intent.capture.name : "子") + "反被吃回";
-    if (k === "attack") return "捉你的无根" + (intent.attack ? intent.attack.name : "子");
-    if (k === "answerCheck") return "应将";
-    if (k === "escape") return nm + "逃出受攻";
-    if (k === "rescue") return "解" + (intent.rescueName || "受攻子") + "之围";
-    if (k === "develop") return "出" + nm + (rib ? "占肋" : center ? "占中" : river ? "巡河" : "");
-    if (rib && p === "r") return "车占肋道";
-    if (center && p === "c") return "炮镇中路";
-    if (river) return nm + "巡河";
-    return "调整阵型";
+    const capName = intent.capture ? intent.capture.name : "子";
+    const atkName = intent.attack ? intent.attack.name : "子";
+    const resName = intent.rescueName || "受攻子";
+    const pick = (base, variants) => {
+      const pool = [base].concat(variants || []);
+      const v = recent === undefined ? pool[0] : pickVariant(pool, recent);
+      if (recent) rememberRecent(recent, v);
+      return v;
+    };
+    if (k === "check") {
+      const base = (bottom && (p === "r" || p === "c") ? "沉底" : center && p === "c" ? "镇中" : "") + "将军";
+      return pick(base, [base + "，先手在握", base + "，逼他表态", base + "，攻势不停"]);
+    }
+    if (k === "freeCapture") return pick("白吃一" + capName,
+      ["白捡一个" + capName + "，零成本", "伸手拿下一" + capName, "白得一" + capName + "，先落袋"]);
+    if (k === "trade") return pick("兑一" + capName,
+      ["等价兑掉一" + capName, "主动邀兑一" + capName, "用等价子换一" + capName]);
+    if (k === "sac") return pick("贪吃一" + capName + "反被吃回",
+      ["吃一" + capName + "要被吃回，得不偿失", capName + "是饵，吃下去要吃亏", "贪一" + capName + "，回头要还的"]);
+    if (k === "attack") return pick("捉你的无根" + atkName,
+      ["追捉你的无根" + atkName, atkName + "没根，他来捉了", "又来捉你的无根" + atkName]);
+    if (k === "answerCheck") return pick("应将",
+      ["先把将军解掉", "应一手将再图反击", "解将要紧，别的先放下"]);
+    if (k === "escape") return pick(nm + "逃出受攻",
+      [nm + "先撤出险地", nm + "避开锋芒", nm + "脱身另找位置"]);
+    if (k === "rescue") return pick("解" + resName + "之围",
+      ["给" + resName + "补根保住", "先护住" + resName + "再说", resName + "受攻，这手是去救"]);
+    if (k === "develop") {
+      const sfx = rib ? "占肋" : center ? "占中" : river ? "巡河" : "";
+      const base = "出" + nm + sfx;
+      return pick(base, sfx ? [base + "，好点位", "先" + sfx + "再说"] : [base + "，活通子力", nm + "出动，按部就班"]);
+    }
+    if (rib && p === "r") return pick("车占肋道", ["车占肋道，要道在手", "车据肋道虎视中宫"]);
+    if (center && p === "c") return pick("炮镇中路", ["炮镇中路，牵制满满", "炮镇当头，中路有根"]);
+    if (river) return pick(nm + "巡河", [nm + "巡河伺机而动", nm + "巡河，攻守两利"]);
+    return pick("调整阵型", ["转移阵地另找战线", "走一手等局势明朗", "调形蓄势不动声色"]);
   }
 
   /* 防守类着手判定（威胁提示用）：应将 / 逃出受攻 / 解救受攻子 */
@@ -312,10 +337,31 @@
     return out.length ? out.join("") : "少许子力";
   }
 
+  /* phaseOf2(board, ply)（T5）：开局/中局/残局。口径同 coachbrain.js——
+   * 残局=双方非将子力总值低于阈值（ENDGAME_MAT 4600/9600 按比例换算到 VAL2 口径
+   * 为 2970，开局约 6200）；此前 ply<20 为开局，其余中局。纯函数。 */
+  const ENDGAME_MAT2 = 2970;
+  function phaseOf2(board, ply) {
+    let mat = 0;
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = board[r][f];
+      if (p && p.toLowerCase() !== "k") mat += VAL2[p.toLowerCase()];
+    }
+    if (mat <= ENDGAME_MAT2) return "end";
+    return (ply === undefined || ply < 20) ? "open" : "mid";
+  }
+
+  /* 局面综述建议句（T5）：按阶段变体，各类首条=原版建议句（历史断言兼容） */
+  const ADVICE_PHASE = {
+    open: ["争取炮镇中路，车抢肋道", "强子尽快出动，出子慢了处处受制", "先抢要道，别急着吃小便宜"],
+    mid: ["保持主动，把战火引向对方的弱侧", "强子先到位，再谈决战", "找对方阵型最薄的一翼下手"],
+    end: ["残局炮归中将安心，兵贵神速", "护好老兵，再用兵线做文章", "把优势兑成实利，不给对攻机会"]
+  };
+
   /* positionSnapshot(board, side, redCp, prevClauses)：
    * 算子力/出子/中炮/肋道/将军/兵差 → 变化过的特征拼 1-2 句 + 一句方向建议。
    * 返回 {clauses, text}；text 只含相对 prevClauses 新出现的特征，全无变化则为 ""。 */
-  function positionSnapshot(board, side, redCp, prevClauses) {
+  function positionSnapshot(board, side, redCp, prevClauses, ply, recent, sayLog) {
     prevClauses = prevClauses || [];
     const clauses = [];
     let mr = 0, mb = 0, pwnR = 0, pwnB = 0, devR = 0, devB = 0;
@@ -355,17 +401,63 @@
     const myDev = side === "r" ? devR : devB;
     const myCenter = side === "r" ? centerR : centerB;
     const myDiff = side === "r" ? diff : -diff;
+    // 建议句（T5）：极端局面保留专属句（首条=原句）；常态按阶段给变体走 pickVariant
+    const pickLine = (base, variants) => {
+      const pool = [base].concat(variants || []);
+      // T6：本局讲过的建议句跳过；全部讲过 → 省略建议句（不炒冷饭）
+      const usable = sayLog ? pool.filter(a => cooldown("advice:" + a, sayLog)) : pool;
+      if (sayLog && !usable.length) return null;
+      const v = recent === undefined ? usable[0] : pickVariant(usable, recent);
+      if (recent) rememberRecent(recent, v);
+      return v;
+    };
     let advice;
-    if (redCp !== null && redCp !== undefined && Math.abs(redCp) >= MATE) advice = "抓住机会入局，别给对方喘息";
-    else if (myDiff <= -200) advice = "少子先稳住阵脚，把战线缩短再图反击";
-    else if (!myCenter) advice = "争取炮镇中路，车抢肋道";
-    else if (myDev < 4) advice = "强子先到位，再谈决战";
-    else advice = "保持主动，把战火引向对方的弱侧";
-    const text = changed.length ? changed.join("，") + "。" + advice + "。" : "";
+    if (redCp !== null && redCp !== undefined && Math.abs(redCp) >= MATE) {
+      advice = pickLine("抓住机会入局，别给对方喘息", ["有杀先看杀，把杀路算完整再动手"]);
+    } else if (myDiff <= -200) {
+      advice = pickLine("少子先稳住阵脚，把战线缩短再图反击", ["少子不慌，先固防再找对攻机会"]);
+    } else {
+      const pool = ADVICE_PHASE[phaseOf2(board, ply)] || ADVICE_PHASE.mid;
+      advice = pickLine(pool[0], pool.slice(1));
+    }
+    const text = changed.length ? changed.join("，") + "。" + (advice ? advice + "。" : "") : "";
     return { clauses, text };
   }
 
   /* 兜底句式池（顺序轮换，同一句式一局内不连续出现两次） */
+  /* ---------- 文案反重复（T1）：pickVariant 纯函数 + recentSay 记录 ----------
+   * 近期说过的文案（st.recentSay，容量 8，先进先出）在选取时降权：优先挑没说过的；
+   * 全说过时避开最近一条；随机起点让句式分布更自然。 */
+  function pickVariant(list, recent) {
+    if (!list || !list.length) return "";
+    const fresh = list.filter(v => recent.indexOf(v) < 0);
+    if (fresh.length) return fresh[Math.floor(Math.random() * fresh.length)];
+    // 池内全部最近说过：挑距今最久的那条（LRU），让重复间隔尽量拉开且不连续重复
+    let best = list[0], bestIdx = Infinity;
+    for (const v of list) {
+      const i = recent.lastIndexOf(v);   // 最近一次被说到的位置；越小=距今越久
+      if (i >= 0 && i < bestIdx) { bestIdx = i; best = v; }
+    }
+    return best;
+  }
+  /* 把选中的条目记入 recent 数组（容量 8，先进先出）；intentPhrase 等传参式调用共用 */
+  function rememberRecent(arr, text) {
+    arr.push(text);
+    if (arr.length > 8) arr.shift();
+    return text;
+  }
+  function rememberSay(text) { return (text && st) ? rememberRecent(st.recentSay, text) : text; }
+  /* cooldown(topic, sayLog)（T6）：同一话题一局内只讲一次。
+   * 首次讲返回 true 并记账；已讲过返回 false；未提供 sayLog（无头测试）恒 true 不记账。 */
+  function cooldown(topic, sayLog) {
+    if (!sayLog) return true;
+    if (sayLog[topic]) return false;
+    sayLog[topic] = true;
+    return true;
+  }
+  /* 运行时快捷入口：从池里挑一条并记入 st.recentSay（st 缺省时只挑不记，供无头测试） */
+  function sayVariant(list) { return rememberSay(pickVariant(list, st ? st.recentSay : [])); }
+
   const WHY_POOL = [
     "这手没找到局面的主战场——{best}才是当前的急所",
     "先手不能丢，{best}才是这局该抢的方向",
@@ -375,8 +467,77 @@
     "这手没有目的性——看看{best}，那才是这局面该干的事"
   ];
   function nextWhy(bestCn) {
-    st.whyIdx = (st.whyIdx + 1) % WHY_POOL.length;
-    return WHY_POOL[st.whyIdx].replace(/\{best\}/g, bestCn);
+    return sayVariant(WHY_POOL).replace(/\{best\}/g, bestCn);
+  }
+
+  /* 学员走准后的表扬池（T1 引入，T5 升级为按阶段变体）：走 pickVariant 防重复 */
+  const PRAISE_PHASE = {
+    open: ["这手「{cn}」很准，和引擎正着一致，就这么下！", "开局走得对，「{cn}」正是谱里的方向", "「{cn}」出子到位，开局就按这个节奏来"],
+    mid: ["「{cn}」走得扎实，跟引擎想到一块去了", "好棋！「{cn}」正是此刻的正着，保持这个感觉", "「{cn}」分毫不差，说明你算进去了"],
+    end: ["残局「{cn}」走得精准，这种局面最见功力", "「{cn}」是残局正着，优势就是这么攒出来的", "稳！「{cn}」把局面握住了"]
+  };
+
+  /* ---------- 对手安静着的意图旁白（T2） ----------
+   * moveIntent 只对吃子/将军/捉子等「响着」分类；占线、补根、邀兑、谋兵、过门、
+   * 调形这类安静着它一概归为 move，讲解就哑了。quietIntent 单独识别这六类目的，
+   * 纯函数：进 (board, side, mvText) 出 {kind, name?}；吃子/将军/坏着法返回 null。 */
+  const QUIET_PHRASES = {
+    gate:     ["是过门——先手铺路，下一步多半有后手", "看似平淡，其实在为下一手威胁铺路", "走完多出一条攻击线，得早防一手"],
+    defend:   ["给自己的受攻子补了根", "是补根的稳手，你的先手没占到", "把受攻的子护住了，阵脚不乱"],
+    simplify: ["主动邀兑，想把局面简化", "摆出兑子架势，兑不兑随你", "想往干净局面走，别让他轻易如愿"],
+    pawn:     ["在兵线上做文章，开始谋兵", "瞄着你的兵，小便宜也在攒", "冲卒试探，兵线要起冲突了"],
+    line:     ["车炮占线，先抢要道", "占了要线，争夺的是主导权", "子往要道集结，别大意"],
+    form:     ["改善阵型的一手，不急不躁", "调形蓄势，等你先露破绽", "补一手阵型，稳字当头"]
+  };
+  /* 旁白组装：≤30 字（「对手走「X」：」占 10 字，短语池各条 ≤20 字）。
+   * recent 提供时随机选变体并记入（防重复），缺省取首条（测试确定性）。 */
+  function quietText(cn, kind, recent) {
+    const pool = QUIET_PHRASES[kind] || QUIET_PHRASES.form;
+    const v = recent === undefined ? pool[0] : pickVariant(pool, recent);
+    if (recent) rememberRecent(recent, v);
+    return "对手走「" + cn + "」：" + v;
+  }
+  function quietIntent(board, side, mvText) {
+    let mv;
+    try { mv = X.parseMove(mvText); } catch (e) { return null; }
+    const piece = board[mv[1]][mv[0]];
+    if (!piece || board[mv[3]][mv[2]]) return null;       // 无子/吃子不算安静着
+    const after = X.cloneBoard(board);
+    X.applyMove(after, ...mv);
+    try { if (X.isCheck(after, X.other(side))) return null; } catch (e) {}   // 将军不算
+    const opp = X.other(side);
+    // 保子：走前我方受攻无根的大子，走后有了根（本手是去补根的那手）
+    const rootless = b => {
+      const out = [];
+      for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+        const p = b[r][f];
+        if (!p || (p === p.toUpperCase()) !== (side === X.RED) || VAL2[p.toLowerCase()] < 300) continue;
+        if (attackedByReal(b, f, r, opp) && !attackedByReal(b, f, r, side)) out.push({ f, r, p });
+      }
+      return out;
+    };
+    const mended = rootless(board).filter(h => !rootless(after).some(x => x.f === h.f && x.r === h.r));
+    if (mended.length) return { kind: "defend", name: NAME_OF[mended[0].p] };
+    // 新攻击线：走后才攻击到的敌子（判断每个敌格走前/走后是否被攻击）
+    const news = [];
+    for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
+      const p = after[r][f];
+      if (!p || (p === p.toUpperCase()) === (side === X.RED) || p.toLowerCase() === "k") continue;
+      if (attackedByReal(after, f, r, side) && !attackedByReal(board, f, r, side)) news.push({ f, r, p });
+    }
+    const simp = news.find(e => VAL2[e.p.toLowerCase()] >= VAL2[piece.toLowerCase()] &&
+      attackedByReal(after, e.f, e.r, opp));
+    if (simp) return { kind: "simplify", name: NAME_OF[simp.p] };          // 主动邀兑
+    if (news.some(e => e.p.toLowerCase() === "p")) return { kind: "pawn" }; // 谋兵
+    const gate = news.find(e => VAL2[e.p.toLowerCase()] >= 300);
+    if (gate) return { kind: "gate", name: NAME_OF[gate.p] };               // 过门（新攻击线）
+    // 占线：车炮进占肋道 / 河口 / 对方底线
+    const pt = piece.toLowerCase();
+    if (pt === "r" || pt === "c") {
+      const river = side === X.RED ? 4 : 5, oppBack = side === X.RED ? 9 : 0;
+      if (mv[2] === 3 || mv[2] === 5 || mv[3] === river || mv[3] === oppBack) return { kind: "line" };
+    }
+    return { kind: "form" };
   }
 
   /* ---------- 谱数据（show() 时懒加载，失败静默降级为纯引擎模式；并发调用共享同一请求） ---------- */
@@ -428,7 +589,11 @@
       worstMine: null,      // {cn, loss} 学员最损一手
       worstOpp: null,       // {cn, loss} 对手最损一手
       snapClauses: [],      // 上次局面快照已报过的特征（只报变化）
-      whyIdx: 0             // 兜底句式池轮换指针
+      recentSay: [],        // 最近说过的文案（容量8，先进先出，pickVariant 防重复）
+      quietAt: -9,          // 上次安静着旁白的手数（T2：每 2 手至多 1 条）
+      lastOppSwing: null,   // 上一手对手着法给学员的摆动（T4 归因用，coachAfterOppMove 更新）
+      sayLog: {},           // 本局已讲过的话题（T6：棋理/建议句，一局一次）
+      whyIdx: 0             // （T1 后不再轮换使用，保留字段兼容旧存档）
     };
   }
 
@@ -536,9 +701,12 @@
     return "自由对局·引擎模式";
   }
   function pickTip() {
-    const t = TIPS[st.tipIdx % TIPS.length];
-    st.tipIdx++;
-    return t;
+    /* T6：同一棋理一局内只讲一次（sayLog 记账）；全部讲过后允许重复（防冷场） */
+    const order = [pickVariant(TIPS, st.recentSay)].concat(TIPS);
+    for (const t of order) {
+      if (cooldown("tip:" + t, st.sayLog)) { rememberSay(t); return t; }
+    }
+    return pickVariant(TIPS, st.recentSay);
   }
 
   /* ---------- 对局流程 ---------- */
@@ -626,10 +794,10 @@
           });
           msgs.forEach(coachSay);
         } else if (res.loss >= 120) {
-          coachSay(buildMistakeMsg(cn, res, node, preBoard, preSide));
+          coachSay(buildMistakeMsg(cn, res, node, preBoard, preSide, st.lastOppSwing));
         } else if (res.loss < 40 && st.praises < 2 && Math.random() < 0.35) {
           st.praises++;
-          coachSay("这手「" + cn + "」很准，和引擎正着一致，就这么下！");
+          coachSay(sayVariant(PRAISE_PHASE[phaseOf2(st.board, st.moves.length)] || PRAISE_PHASE.mid).replace(/\{cn\}/g, cn));
         }
         if (!st.worstMine || res.loss > st.worstMine.loss) st.worstMine = { cn, loss: res.loss };
         st.lastRedCp = redAfter;
@@ -664,15 +832,19 @@
       st.lastRedCp = redCp;
       updateEvalUI(redCp);
     }
-    if (prev === null || !cands || !cands.length || st.status !== "playing") return;
+    if (prev === null || !cands || !cands.length || st.status !== "playing") {
+      st.lastOppSwing = null;   // 引擎数据缺失：错过机会归因不可用
+      return;
+    }
     const swing = Math.round(st.lastRedCp - prev);     // 红方视角改善量
     const good = st.mySide === "r" ? swing : -swing;   // 学员视角的获益
+    st.lastOppSwing = good;   // T4：留给学员下一手的「错过机会」归因
     // 2. 对手送机会（特大最值钱的点评，必须报）
     if (good >= 150) {
       if (!st.worstOpp || good > st.worstOpp.loss) st.worstOpp = { cn: node.cn, loss: good };
       const best = cands[0];
       const bestCn = safeCn(st.board, st.side, best.mv);
-      const phrase = intentPhrase(moveIntent(st.board, st.side, best.mv));
+      const phrase = intentPhrase(moveIntent(st.board, st.side, best.mv), st.recentSay);
       const lineCn = pvToCn(st.board, st.side, best.line, 3);
       coachSay((good >= 300 ? "对手这手「" + node.cn + "」送了大礼（损 " + good + " 分）" :
         "对手这手「" + node.cn + "」有问题（损 " + good + " 分）") +
@@ -686,9 +858,25 @@
       if (b0) { try { defensive = isDefensive(st.board, st.side, b0); } catch (e) {} }
       if (defensive) {
         const parts = pvToCn(st.board, st.side, cands[0].line, 3).split(" → ");
-        const oppWhat = oppIntent ? intentPhrase(oppIntent) : "藏着后续手段";
+        const oppWhat = oppIntent ? intentPhrase(oppIntent, st.recentSay) : "藏着后续手段";
         coachSay("注意，对手这手「" + node.cn + "」来者不善——他想" + oppWhat +
           "，你大概只有 " + parts[0] + (parts[1] ? "，然后他 " + parts[1] : "") + "。稳住，别让他牵着走。");
+      }
+      return;
+    }
+    // 4. 安静着旁白（T2）：摆动不大时点一句对手意图，每 2 手至多 1 条。
+    //    还原对手走子前的局面做分析（只读重放，不动状态机）。
+    if (st.moves.length - st.quietAt >= 2) {
+      const pre = X.parseFen(START_FEN);
+      let pb = pre.board, ps = pre.side;
+      for (let i = 0; i < st.moves.length - 1; i++) {
+        X.applyMove(pb, ...X.parseMove(st.moves[i].m));
+        ps = X.other(ps);
+      }
+      const q = quietIntent(pb, ps, node.m);
+      if (q) {
+        st.quietAt = st.moves.length;
+        coachSay(quietText(node.cn, q.kind, st.recentSay));
       }
     }
   }
@@ -696,7 +884,7 @@
   /* 4. 局面叙述：每 8 手至多一次，只报相对上次快照变化的特征 */
   function maybeSnapshot() {
     if (!st || st.status !== "playing" || !st.moves.length || st.moves.length % 8 !== 0) return;
-    const snap = positionSnapshot(st.board, st.side, st.lastRedCp, st.snapClauses);
+    const snap = positionSnapshot(st.board, st.side, st.lastRedCp, st.snapClauses, st.moves.length, st.recentSay, st.sayLog);
     st.snapClauses = snap.clauses;
     if (snap.text) coachSay(snap.text);
   }
@@ -709,8 +897,21 @@
     return mvText;
   }
 
-  /* 学员失误（loss≥120）的具体理由：按优先级找第一条成立的，兜底走句式池 */
-  function buildMistakeMsg(cn, res, node, preBoard, preSide) {
+  /* 学员失误（loss≥120）的具体理由：按优先级找第一条成立的，兜底走句式池。
+   * oppSwing（T4）：上一手对手着法给学员带来的摆动（coachAfterOppMove 记入
+   * st.lastOppSwing 后传入），用于「错过对手失误」归因；未知传 null。 */
+  const MISSED_BLUNDER_POOL = [
+    sw => "对手上一手刚送了 " + sw + " 分的大礼，正着 {best} 就是接住它——机会窗口只有一瞬",
+    sw => "他上一手给了你 " + sw + " 分的机会，这手必须主动，{best} 别再放过",
+    sw => "机会就在眼前（对手上手上亏 " + sw + " 分），{best} 是唯一的回应"
+  ];
+  const MISSED_WIN_POOL = [
+    cap => "正着 {best} 直接白吃一" + cap + "——大子就摆在盘上，别视而不见",
+    cap => "先看清眼前的得子：{best} 白吃一" + cap,
+    cap => "他的" + cap + "没根，{best} 白吃就行，这手却绕开了"
+  ];
+  function buildMistakeMsg(cn, res, node, preBoard, preSide, oppSwing) {
+    const recent = st ? st.recentSay : undefined;
     const bestCn = safeCn(preBoard, preSide, res.bestMv);
     const itB = moveIntent(preBoard, preSide, res.bestMv);
     const head = "这手「" + cn + "」损 " + res.loss + " 分（" + clsName(res.loss) + "），";
@@ -724,7 +925,17 @@
     // 1. 送子：走后这手移动的子被攻击且无保护（排除白脸将假阳性）
     if (attackedByReal(afterBoard, mv[2], mv[3], opp) && !attackedByReal(afterBoard, mv[2], mv[3], preSide)) {
       return head + "把" + (NAME_OF[moverPiece] || "子") + "送到了对方火力下——正着 " + bestCn +
-        "（" + intentPhrase(itB) + "）不丢子也不丢先" + tail;
+        "（" + intentPhrase(itB, recent) + "）不丢子也不丢先" + tail;
+    }
+    // 1.5 错过对手失误（T4）：上一手对手摆动 ≥150 而这手你亏 ≥120（走到这里必然 ≥120）
+    if (oppSwing !== null && oppSwing !== undefined && oppSwing >= 150) {
+      const tpl = sayVariant(MISSED_BLUNDER_POOL.map(f => f(oppSwing)));
+      return head + tpl.replace(/\{best\}/g, bestCn) + tail;
+    }
+    // 1.6 错过一步得子（T4）：引擎正着是吃 ≥400 的大子而实战没吃
+    if (itB.capture && itB.capture.value >= 400 && !preBoard[mv[3]][mv[2]]) {
+      const tpl = sayVariant(MISSED_WIN_POOL.map(f => f(itB.capture.name)));
+      return head + tpl.replace(/\{best\}/g, bestCn) + tail;
     }
     // 2. 被将未理
     if (X.isCheck(preBoard, preSide) && X.isCheck(afterBoard, preSide)) {
@@ -737,7 +948,7 @@
     }
     // 4. 正着捉子/得子
     if (itB.kind === "freeCapture" || itB.kind === "trade" || itB.kind === "attack") {
-      return head + "正着 " + bestCn + "——" + intentPhrase(itB) + "，他必丢一子" + tail;
+      return head + "正着 " + bestCn + "——" + intentPhrase(itB, recent) + "，他必丢一子" + tail;
     }
     // 5. 兜底句式池（顺序轮换，不连续重复）
     return head + nextWhy(bestCn) + tail;
@@ -1086,6 +1297,8 @@
     describeRed, fmtEvalRed, clsName,
     classifyMove, replayBook, buildOffBookMsg, findChild,
     moveIntent, intentPhrase, isDefensive, positionSnapshot,
+    pickVariant, quietIntent, quietText, buildMistakeMsg, phaseOf2, cooldown,
+    get quietPhrases() { return QUIET_PHRASES; },
     get levels() { return LEVELS; },
     get tips() { return TIPS; }
   };
