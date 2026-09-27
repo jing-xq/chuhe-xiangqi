@@ -1,1 +1,1 @@
-{"fen":"3ak4/4a1P2/9/9/9/9/9/9/9/4K4 w - - 0 0","win":"*","moves":[{"m":"g8g9","cn":"兵三进一"}],"title":"A单兵和单炮类-定式01","category":"C","file":"C/054.json","plies":1,"vars":0,"annotated":false}
+{"fen":"3ak4/4a1P2/9/9/9/9/9/9/9/4K4 w - - 0 0","win":"*","moves":[{"m":"g8g9","cn":"兵三进一","c":"红兵进一，单兵对单炮定式的第一手，先站稳脚步。"}],"title":"A单兵和单炮类-定式01","category":"C","file":"C/054.json","plies":1,"vars":0,"annotated":false}
