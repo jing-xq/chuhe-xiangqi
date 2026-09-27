@@ -33,7 +33,9 @@ const Notation = sandbox.window.Notation;
 /* ---------- 通用工具 ---------- */
 const len = s => [...s].length;
 const RE_COORD = /[a-i][0-9][a-i][0-9]/i;
-const RE_MOVE = /[前后中]?[车马炮兵卒帅将相象仕士][一二三四五六七八九0-9]?[进退平][一二三四五六七八九0-9]/g;
+/* 完整中文记法：带路数（炮二平五/将5退1）；同线同名子用前/后/中缀时代替路数（前兵进一）。
+ * 「将退一」这类省略路数的口语不算记法，不参与合法着比对。 */
+const RE_MOVE = /[前后中][车马炮兵卒帅将相象仕士][进退平][一二三四五六七八九0-9]|[车马炮兵卒帅将相象仕士][一二三四五六七八九0-9][进退平][一二三四五六七八九0-9]/g;
 const RE_ASCII = /[A-Za-z]/;
 const TONE_BLOCK = ["笨", "蠢", "傻", "垃圾", "废物", "鄙视", "嘲讽"];
 const RE_CJK = /^[\u4e00-\u9fff0-9，。、；：？！·—…（）「」『』""'']+$/;
@@ -68,8 +70,11 @@ const VALID = {
     if (!charsetOk(c)) return "含非中文字符（字母/符号/emoji）";
     if (RE_COORD.test(c)) return "含坐标记法";
     if (!toneOk(c)) return "语气违规";
+    // 合法着全集 + 上一手（评注提及「上手的某某」是合理引用）
+    const allowedMv = legalCnSet(inp.fen);
+    if (inp.prevCn) allowedMv.add(inp.prevCn);
     for (const mv of moveMentions(c)) {
-      if (!legalCnSet(inp.fen).has(mv)) return "提到不合法着法「" + mv + "」";
+      if (!allowedMv.has(mv)) return "提到不合法着法「" + mv + "」";
     }
     const k = inp.intent && inp.intent.kind;
     if ((k === "freeCapture" || k === "trade" || k === "sac") && !/吃|兑|换/.test(c)) return "吃/兑子意图未提吃兑换";
@@ -117,7 +122,10 @@ const VALID = {
       if (RE_COORD.test(v)) return f + " 含坐标记法";
       if (!toneOk(v)) return f + " 语气违规";
       const allowed = new Set([String(inp.fall), String(inp.loss)]);
-      for (const d of digitRuns(v)) if (!allowed.has(d)) return f + " 出现输入之外的数字 " + d + "（不许自己算数）";
+      // 输入着法原文里的数字（如 车1进1）是合法引用，先剔除再查剩余数字
+      let stripped = v;
+      for (const cn of [inp.trapCn, inp.victimCn, inp.declineCn]) if (cn) stripped = stripped.split(cn).join("□");
+      for (const d of digitRuns(stripped)) if (!allowed.has(d)) return f + " 出现输入之外的数字 " + d + "（不许自己算数）";
       const cns = [inp.trapCn, inp.victimCn, inp.declineCn].filter(Boolean);
       for (const mv of moveMentions(v)) if (!cns.includes(mv)) return f + " 提到输入集合之外的着法「" + mv + "」";
     }
@@ -216,6 +224,11 @@ const seen = { text: new Set(), task: new Set(), subs: new Set(), ids: new Set()
 const accepted = [], rejected = [], retryInputs = [];
 let nOut = 0;
 
+/* T3 的输出只有三段文案字段（无 id），按输入行序号位置一一对应 */
+const orderedInputs = manifest.chunks.length === 1 ? manifest.chunks.flatMap(cf =>
+  fs.readFileSync(path.join(DIR, cf), "utf8").split("\n").filter(l => l.trim()).map(l => JSON.parse(l))) : [];
+let t3pos = 0;
+
 const outFiles = fs.readdirSync(DIR).filter(f => /^out-.*\.jsonl$/.test(f)).sort();
 if (!outFiles.length) { console.error("无 out-*.jsonl（先让生成方产出）"); process.exit(2); }
 for (const of of outFiles) {
@@ -224,11 +237,11 @@ for (const of of outFiles) {
     nOut++;
     let row = null;
     try { row = JSON.parse(line); } catch (e) { rejected.push({ line: line.slice(0, 120), reason: "JSON 不可解析" }); continue; }
-    const inp = inputs.get(joinKey(TASK, row));
+    const inp = TASK === "t3" ? orderedInputs[t3pos++] : inputs.get(joinKey(TASK, row));
     if (!inp) { rejected.push({ line: line.slice(0, 120), reason: "找不到对应任务包输入行" }); continue; }
     const err = VALID[TASK](row, inp, seen);
     if (err) rejected.push({ line: line.slice(0, 160), reason: err });
-    else { accepted.push(row); retryInputs.push(inp); }
+    else { accepted.push(row); if (TASK !== "t3") retryInputs.push(inp); }
   }
 }
 

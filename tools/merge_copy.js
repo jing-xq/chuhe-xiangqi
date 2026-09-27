@@ -100,17 +100,20 @@ function mergeT4() {
   console.log("T4：改写标题 " + n + " 条 → " + idxPath);
 }
 
-/* ---------- T3：飞刀文案 overlay ---------- */
+/* ---------- T3：飞刀文案 overlay（输出行无 id，按输入行顺序配对） ---------- */
 function mergeT3() {
   const clsFile = argVal("cls", "tools/_work/trapcls.json");
   const cache = readJson(path.join(ROOT, clsFile));
+  const manifest = readJson(path.join(DIR, "manifest.json"));
+  const inputIds = manifest.chunks.flatMap(cf =>
+    fs.readFileSync(path.join(DIR, cf), "utf8").split("\n").filter(l => l.trim())
+      .map(l => JSON.parse(l).id));
   const outDir = path.join(ROOT, "data", "traps");
   fs.mkdirSync(outDir, { recursive: true });
-  const texts = new Map(accepted.map(r => [r.id, r]));
   let n = 0;
-  for (const [id, c] of Object.entries(cache)) {
-    const t = texts.get(id);
-    if (!t) continue;
+  for (let i = 0; i < accepted.length && i < inputIds.length; i++) {
+    const id = inputIds[i], t = accepted[i], c = cache[id];
+    if (!c || !c.trapPly || c.cls === "未知") continue;
     const overlay = {
       id, cls: c.cls, fall: c.fall, loss: c.loss, trapPly: c.trapPly,
       declineMv: c.declineMv || null,

@@ -80,8 +80,17 @@
   - `node tools/test_stability.js` —— 稳定性批次回归（对应规划文档 9.2 十条用例）：入门课 FEN 与任务判定（`Guide._steps`/`Guide._judge`）、胜负字段迁移（`Games.userResult`/`normWinner`）、损分视角（`Games._computeLosses`）、练习定时器取消、引擎调度器串行/优先级/取消/后台暂停、`CoachBrain._replay` 帧一致性。改动 guide/games/quiz/engine/coachbrain 后应跑它。
 - `python -B tools/build_openings.py --check` —— 开局谱库校验（CI 式快速检查）。
   - `node tools/test_core_content.js` —— 核心路线内容复验 + Learn 状态分层/复习调度/buildPlan 规则回归。改动 `route.json`、`build_route.js`、`learn.js` 后应跑它。
+  - `node tools/test_import_corpus.js` —— 棋谱导入容错语料回归（`data/copy/import_corpus.json`，parseGameText 断言逐例跑）。改动 `games.js` 的导入解析后应跑它。
+  - `node tools/check_lessons.js` —— 课树全量合法性遍历 + cn 记谱一致性（`--fix-cn` 可机械修复 cn，规则引擎为唯一出处）。改动课程数据后应跑它。
 - 前端其余流程无自动化测试体系；验证靠起服务器在浏览器里走完整流程（跟谱/对弈/分析/私教）。
 - 无部署流程——纯静态文件本地运行，`git` 是唯一版本控制。
+
+## 批量文案流水线（低成本模型批量工作规划.md）
+
+- **铁律**：着法/局面/FEN/评分只来自规则引擎与引擎缓存，模型只写中文讲解字段（`c`/`note`/文案数组），机器判卷不过整行丢弃。
+- 工具链：`tools/gen_copy_tasks.js`（扫 data/ 生成任务包 JSONL → `tools/_work/copy/<task>/chunk-*.jsonl`）→ 模型逐行填充（提示词在 `tools/copy_prompts/T*.txt`）→ `tools/check_copy.js`（schema/长度/坐标禁用/着法合法集/意图一致性/去重/语气黑名单）→ `tools/merge_copy.js`（合并回 data/，前后着法树 byte-identical 校验）。
+- 任务映射：T1 课程评注→`data/lessons/C/*.json` 的 `c` 字段；T2 反馈语料→`data/copy/feedback.json`（`js/feedback.js` 取随机变体，占位符 `{days}` 等由前端填）；T3 飞刀文案→`data/traps/<id>.json` overlay（离线分类 `tools/gen_trap_cls.js`，前端优先于 localStorage 缓存）；T4 课名副标题→`index.json` 标题「原标题·副题」；T5 导入语料→`data/copy/import_corpus.json`；T6 开局指南→`data/openings/<id>.json` 的 `guide` 字段；T7 术语卡→`data/copy/terms.json`（入门课毕业页入口）。
+- 语料缺失时前端一律静默回退内置文案；`Feedback.pick` 未加载完返回空串由调用方兜底。
 
 ## 代码风格约定
 

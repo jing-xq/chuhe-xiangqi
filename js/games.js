@@ -227,14 +227,15 @@
     }
 
     // 去掉括号注释、头部行、结果词、回合号
+    // 回合号剥参数量上要求前面是行首/空白，否则会吃掉着法末位数字（如「士6进5、和棋」的 5、）
     let body = text
       .replace(/【[^】]*】/g, " ")
       .replace(/\{[^}]*\}/g, " ")
       .replace(/（[^（）]*）/g, " ")
       .replace(/\([^()]*\)/g, " ")
       .replace(/红先胜|黑先胜|红胜|黑胜|和棋|和局/g, " ")
-      .replace(/\d+\s*[.、．:：]/g, " ");
-    const tokens = body.split(/[\s,，;；]+/).filter(Boolean);
+      .replace(/(^|\s)(\d+\s*[.、．:：])/g, "$1 ");
+    const tokens = body.split(/[\s,，;；。、！？!?.]+/).filter(Boolean);
 
     const parsed = X.parseFen(fen);
     let board = parsed.board, side = parsed.side;
