@@ -241,18 +241,28 @@
    *   lastGames: [{ts, result}]                         // 最近对局（新→旧）
    * }
    * 返回 [{type:"review"|"new"|"battle"|"weak", title, reason, link}] */
+  /* 推荐理由语料（T2）：cfg.reasonBank 缺失时用内置 fallback（buildPlan 保持确定性可测）。
+   * 语料变体含 {xxx} 占位符，vars 由调用方格式化好再传入。 */
+  function pickReason(bank, key, vars, fallback) {
+    const arr = bank && bank[key];
+    const tpl = arr && arr.length ? arr[Math.floor(Math.random() * arr.length)] : fallback;
+    return String(tpl).replace(/\{([a-z]+)\}/g, (m, k) =>
+      vars && vars[k] !== undefined && vars[k] !== null ? String(vars[k]) : "");
+  }
+
   function buildPlan(cfg) {
     const items = [];
+    const bank = cfg.reasonBank || null;
     const s = cfg.settings || fresh().settings;
     if (s.includeReview) {
       for (const r of cfg.reviews.slice(0, 3)) {
         const days = Math.max(1, Math.round((cfg.now - r.due) / DAY));
         if (r.type === "game") {
-          items.push({ type: "review", title: "实战错题复习", reason: "这手棋的教训已隔 " + days + " 天，回来验证一下", link: { review: r.key } });
+          items.push({ type: "review", title: "实战错题复习", reason: pickReason(bank, "plan:reasonReview", { days, title: "实战错题" }, "这手棋的教训已隔 " + days + " 天，回来验证一下"), link: { review: r.key } });
         } else {
           const parts = r.key.split("/");
           const lesson = cfg.route.find(l => l.id === parts[1]);
-          items.push({ type: "review", title: "复习：" + (lesson ? lesson.title : "练习"), reason: "距上次出错已 " + days + " 天", link: { review: r.key } });
+          items.push({ type: "review", title: "复习：" + (lesson ? lesson.title : "练习"), reason: pickReason(bank, "plan:reasonReview", { days, title: lesson ? lesson.title : "练习" }, "距上次出错已 " + days + " 天"), link: { review: r.key } });
         }
       }
     }
@@ -263,7 +273,7 @@
       });
       if (next) {
         const idx = cfg.route.indexOf(next) + 1;
-        items.push({ type: "new", title: "新课：" + next.title, reason: "新手路线第 " + idx + " 课（" + next.stage + "）", link: { lesson: next.id } });
+        items.push({ type: "new", title: "新课：" + next.title, reason: pickReason(bank, "plan:reasonNew", { idx: "第 " + idx + " 课", stage: next.stage, title: next.title }, "新手路线第 " + idx + " 课（" + next.stage + "）"), link: { lesson: next.id } });
       } else {
         items.push({ type: "new", title: "路线已完成", reason: "30 课全部独立通过——去资料库继续进阶", link: { lessons: true } });
       }
@@ -275,7 +285,7 @@
       .sort((a, b) => a.noHintRate - b.noHintRate)[0];
     if (weak) {
       const pct = Math.round(weak.noHintRate * 100);
-      items.push({ type: "weak", title: "薄弱项：" + weak.tag, reason: "无提示正确率 " + pct + "%（" + weak.sample + " 次练习），今天先练三道观察题", link: { ability: weak.tag } });
+      items.push({ type: "weak", title: "薄弱项：" + weak.tag, reason: pickReason(bank, "plan:reasonWeak", { pct: pct + "%", tag: weak.tag }, "无提示正确率 " + pct + "%（" + weak.sample + " 次练习），今天先练三道观察题"), link: { ability: weak.tag } });
     } else {
       const obs = Object.keys(cfg.abilities || {}).map(k => cfg.abilities[k]).filter(a => a.observing);
       if (obs.length) items.push({ type: "weak", title: "观察中的能力：" + obs.slice(0, 2).map(o => o.tag).join("、"), reason: "样本还不足 " + MIN_ABILITY_SAMPLES + " 次，暂不生成结论", link: { profile: true } });
@@ -290,9 +300,12 @@
       }
       const levelIdx = { "业1": 1, "业3": 2, "业5": 3 }[s.battleLevel] !== undefined ? s.battleLevel : null;
       const finalLevel = s.battleLevel !== "auto" ? s.battleLevel : level;
+      const winsN = recent.filter(g => g.result === "win").length;
       items.push({
         type: "battle", title: "实战一盘（" + finalLevel + "）",
-        reason: recent.length ? "最近 " + recent.length + " 盘 " + recent.filter(g => g.result === "win").length + " 胜，对手定为 " + finalLevel : "还没有实战记录，先来一盘轻松的",
+        reason: recent.length
+          ? pickReason(bank, "plan:reasonBattle", { n: recent.length, wins: winsN, level: finalLevel }, "最近 " + recent.length + " 盘 " + winsN + " 胜，对手定为 " + finalLevel)
+          : pickReason(bank, "plan:reasonBattle", { level: finalLevel }, "还没有实战记录，先来一盘轻松的"),
         link: { battle: finalLevel }
       });
     }

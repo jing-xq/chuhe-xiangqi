@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  let els = {}, route = null;
+  let els = {}, route = null, reasonBank = null;
 
   function loadRoute() {
     if (route) return Promise.resolve();
@@ -16,10 +16,19 @@
     }).then(data => { route = data; });
   }
 
+  /* T2：推荐理由语料（缺失静默降级到内置句） */
+  function loadReasonBank() {
+    if (reasonBank) return Promise.resolve();
+    return fetch("data/copy/feedback.json")
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
+      .then(d => { reasonBank = (d && d.keys) || {}; })
+      .catch(() => { reasonBank = {}; });
+  }
+
   function mount(container) {
     container.innerHTML = "<div id='today-body' class='today-wrap'><div class='dim' style='padding:30px'>加载中…</div></div>";
     els = { body: container.querySelector("#today-body") };
-    loadRoute().then(render).catch(e => {
+    Promise.all([loadRoute(), loadReasonBank()]).then(render).catch(e => {
       els.body.innerHTML = "<div class='dim' style='padding:30px'>课程数据加载失败（" + e.message + "）。请确认通过本地服务器访问，然后刷新重试。</div>";
     });
   }
@@ -27,7 +36,7 @@
   function render() {
     if (!route) {
       els.body.innerHTML = "<div class='dim' style='padding:30px'>加载中…</div>";
-      loadRoute().then(render).catch(e => {
+      Promise.all([loadRoute(), loadReasonBank()]).then(render).catch(e => {
         els.body.innerHTML = "<div class='dim' style='padding:30px'>课程数据加载失败（" + e.message + "）。</div>";
       });
       return;
@@ -45,6 +54,7 @@
     const cfg = {
       now: Date.now(),
       settings,
+      reasonBank,
       reviews: Learn.review.due(),
       route: route.lessons.map(l => ({ id: l.id, stage: route.stages.find(st => st.id === l.stage).name, title: l.title, ability: l.abilities[0] })),
       progress: Object.fromEntries(ids.map(id => [id, Learn.statusOf(id).state])),

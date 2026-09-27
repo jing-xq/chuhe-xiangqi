@@ -248,6 +248,46 @@
     return pseudoMoves(board, side).filter(mv => isLegal(board, side, mv));
   }
 
+  /* 违法走法的教学归因（反馈语料选键用）：马腿 / 象眼 / 炮架 / 照面 / 其他。
+   * 只在 isLegal 判非法后调用；意图是告诉学员「这步为什么走不了」，不追求穷尽所有规则。 */
+  function illegalReason(board, side, mv) {
+    const [f0, r0, f1, r1] = mv;
+    if (!inBoard(f0, r0) || !inBoard(f1, r1)) return "generic";
+    const p = board[r0][f0];
+    if (!p || (p === p.toUpperCase()) !== (side === RED)) return "generic";
+    const pt = p.toLowerCase();
+    const df = f1 - f0, dr = r1 - r0;
+    const t = board[r1][f1];
+    if (t !== null && (t === t.toUpperCase()) === (side === RED)) return "generic";   // 吃己方子
+    if (pt === "n") {
+      const adf = Math.abs(df), adr = Math.abs(dr);
+      if (!((adf === 1 && adr === 2) || (adf === 2 && adr === 1))) return "generic";  // 不是日字
+      const legF = adf === 2 ? f0 + df / 2 : f0;   // 先直一格的方向
+      const legR = adr === 2 ? r0 + dr / 2 : r0;
+      return board[legR][legF] !== null ? "horseleg" : "generic";
+    }
+    if (pt === "b") {
+      if (Math.abs(df) !== 2 || Math.abs(dr) !== 2) return "generic";                 // 不是田字
+      if (board[(r0 + r1) >> 1][(f0 + f1) >> 1] !== null) return "eye";               // 田心有子
+      return "generic";                                                               // 过河等其他
+    }
+    if (pt === "c" && (df === 0 || dr === 0) && t !== null) {
+      let blocks = 0;
+      const sf = Math.sign(df), sr = Math.sign(dr);
+      let f = f0 + sf, r = r0 + sr;
+      while (f !== f1 || r !== r1) {
+        if (board[r][f] !== null) blocks++;
+        f += sf; r += sr;
+      }
+      if (blocks !== 1) return "screen";   // 吃子却无架/多架——炮架教学点
+      return "generic";
+    }
+    const b2 = cloneBoard(board);
+    applyMove(b2, f0, r0, f1, r1);
+    if (kingsFace(b2)) return "face";
+    return "generic";
+  }
+
   function isCheck(board, side) {
     const k = findKing(board, side);
     return k !== null && attackedBy(board, k[0], k[1], other(side));
@@ -304,7 +344,7 @@
   window.Xiangqi = {
     RED, BLACK, FILES, INIT_FEN, other, inBoard, inPalace, crossedRiver, cloneBoard,
     parseFen, boardToFen, findKing, kingsFace, applyMove, attackedBy,
-    pseudoMoves, isLegal, legalMoves, isCheck, isCheckmate, parseMove, moveToText,
+    pseudoMoves, isLegal, legalMoves, illegalReason, isCheck, isCheckmate, parseMove, moveToText,
     repetitionResult, sideAtPly, cpToRed
   };
 })();

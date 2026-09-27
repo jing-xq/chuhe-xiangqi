@@ -229,6 +229,7 @@
             <button id="op-train-b" class="primary">▶ 训练执黑</button>
           </div>
           <div id="op-intro" class="pl-desc"></div>
+          <div id="op-guide" class="pl-desc hidden"></div>
           <div class="op-detail-main">
             <div class="op-board-col">
               <canvas id="op-board"></canvas>
@@ -301,6 +302,7 @@
       title: container.querySelector("#op-title"),
       level: container.querySelector("#op-level"),
       intro: container.querySelector("#op-intro"),
+      guide: container.querySelector("#op-guide"),
       devrate: container.querySelector("#op-devrate"),
       trainR: container.querySelector("#op-train-r"),
       trainB: container.querySelector("#op-train-b"),
@@ -482,12 +484,29 @@
       els.title.textContent = meta.name;
       els.level.textContent = data.level || "入门";
       els.intro.textContent = data.intro || "";
+      renderGuide(data.guide);
       player.load(data);
       showSub("detail");
       refreshDetail();
     }).catch(e => {
       els.dashNote.textContent = "谱加载失败：" + e.message;
     });
+  }
+
+  /* T6：体系阵型指南（data/openings/<id>.json 的 guide 字段，缺失时整块隐藏） */
+  function renderGuide(g) {
+    if (!g || !Array.isArray(g.formation) || !g.formation.length) {
+      els.guide.classList.add("hidden");
+      return;
+    }
+    const list = (icon, label, arr) =>
+      arr && arr.length ? "<div style='margin:4px 0'>" + icon + " <b>" + label + "</b>：" +
+        arr.map(s => escapeHtml(s)).join("；") + "</div>" : "";
+    els.guide.innerHTML =
+      list("🏰", "阵型目标", g.formation) +
+      list("⚔️", "常见计划", g.plans) +
+      list("⚠️", "要防的", g.warnings);
+    els.guide.classList.remove("hidden");
   }
 
   function refreshDetail() {

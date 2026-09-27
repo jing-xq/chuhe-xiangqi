@@ -162,7 +162,10 @@
       onMove: onMove,
       onIllegal: (from, to) => {
         Sound.play("illegal");
-        els.feedback.textContent = "这步违反规则啦（马腿/象眼/炮架/九宫/过河/照面，想想是哪条）。";
+        const { board: b, side } = X.parseFen(STEPS[idx].fen);
+        const why = X.illegalReason(b, side, [from[0], from[1], to[0], to[1]]);
+        els.feedback.textContent = Feedback.pick("illegal:" + why) ||
+          "这步违反规则啦（马腿/象眼/炮架/九宫/过河/照面，想想是哪条）。";
         els.feedback.className = "gd-feedback bad";
       }
     });
@@ -191,8 +194,16 @@
     const step = STEPS[i];
     els.title.textContent = (i + 1) + ". " + step.t;
     els.text.textContent = step.text;
-    els.feedback.textContent = step.mode === "view" ? "" : "👉 " + (step.who ? "请走「" + step.who + "」" : "轮到你了") + "：在棋盘上试着走一着";
-    els.feedback.className = "gd-feedback";
+    if (i === STEPS.length - 1) {
+      // 毕业页：挂术语小词典入口（T7）
+      els.feedback.innerHTML = "<button id='gd-terms' class='primary'>📖 打开「术语小词典」</button>";
+      const btn = els.feedback.querySelector("#gd-terms");
+      if (btn) btn.onclick = showTerms;
+      els.feedback.className = "gd-feedback";
+    } else {
+      els.feedback.textContent = step.mode === "view" ? "" : "👉 " + (step.who ? "请走「" + step.who + "」" : "轮到你了") + "：在棋盘上试着走一着";
+      els.feedback.className = "gd-feedback";
+    }
     const { board: b, side } = X.parseFen(step.fen);
     board.update({
       board: b, turn: side,
@@ -213,14 +224,16 @@
     const verdict = judge(step, b, side, mv);
     if (verdict.reason === "illegal") {
       Sound.play("illegal");
-      els.feedback.textContent = "这步不合法。记住每个棋子的走法限制，再试试。（可看左侧讲解）";
+      els.feedback.textContent = Feedback.pick("illegal:" + X.illegalReason(b, side, mv)) ||
+        "这步不合法。记住每个棋子的走法限制，再试试。（可看左侧讲解）";
       els.feedback.className = "gd-feedback bad";
       return;
     }
     if (verdict.reason === "piece") {
       tries++;
       Sound.play("illegal");
-      els.feedback.textContent = "这一步要动「" + step.who + "」哦，其他棋子先别动。";
+      els.feedback.textContent = Feedback.fmt(
+        Feedback.pick("wrongPiece") || "这一步要动「{who}」哦，其他棋子先别动。", { who: step.who });
       els.feedback.className = "gd-feedback bad";
       return;
     }
@@ -228,9 +241,10 @@
       tries++;
       Sound.play("illegal");
       els.feedback.textContent = step.hint ||
-        (step.accept === "capture"
-          ? "要用吃子的方式！提示：看看目标位置上有对方棋子的落点。"
-          : "再想想这步的目标是什么。（可多试几次）");
+        (Feedback.pick("retry") ||
+          (step.accept === "capture"
+            ? "要用吃子的方式！提示：看看目标位置上有对方棋子的落点。"
+            : "再想想这步的目标是什么。（可多试几次）"));
       els.feedback.className = "gd-feedback bad";
       return;
     }
@@ -238,12 +252,39 @@
     Sound.play(b[r1][f1] !== null ? "capture" : "move");
     doneSet[idx] = true;
     saveDone();
-    els.feedback.textContent = "🎉 走对了！" + (step.accept === "capture" ? " 吃子成功。" : "");
+    els.feedback.textContent = "🎉 " + (Feedback.pick("ok") || "走对了！") + (step.accept === "capture" ? " 吃子成功。" : "");
     els.feedback.className = "gd-feedback ok";
     X.applyMove(b, ...mv);
     board.update({ board: b, turn: X.other(side), interactive: false, lastMove: mv });
     renderSteps();
     setTimeout(() => { if (idx < STEPS.length - 1) goto(idx + 1); }, 900);
+  }
+
+  /* 术语小词典（T7）：毕业页入口，数据 data/copy/terms.json，缺失时静默 */
+  let termsCache = null;
+  function showTerms() {
+    Sound.play("click");
+    const open = data => {
+      if (!data || !Array.isArray(data.terms) || !data.terms.length) return;
+      const mask = document.createElement("div");
+      mask.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99;display:flex;align-items:center;justify-content:center;padding:16px;";
+      const box = document.createElement("div");
+      box.style.cssText = "background:#23304a;color:#e8ecf5;max-width:640px;max-height:82vh;overflow:auto;padding:18px 22px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.4);";
+      box.innerHTML = "<h3 style='margin:0 0 4px'>📖 术语小词典</h3>" +
+        "<div class='dim' style='margin-bottom:10px'>新手最常用，毕业前混个脸熟，之后在课程里还会反复遇到。</div>" +
+        data.terms.map(t =>
+          "<p style='margin:9px 0;line-height:1.55'><b style='color:#ffd97a'>" + t.term + "</b>　" + t.def +
+          "<br><span style='color:#8fb8ff'>口诀：" + t.motto + "</span></p>").join("") +
+        "<button class='primary' style='margin-top:8px'>关闭</button>";
+      mask.onclick = e => { if (e.target === mask) mask.remove(); };
+      box.querySelector("button").onclick = () => mask.remove();
+      mask.appendChild(box);
+      document.body.appendChild(mask);
+    };
+    if (termsCache) { open(termsCache); return; }
+    fetch("data/copy/terms.json").then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
+      .then(d => { termsCache = d; open(d); })
+      .catch(() => {});
   }
 
   window.Guide = {

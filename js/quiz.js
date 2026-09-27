@@ -62,7 +62,7 @@
         }, 450);
       } else {
         phase = "done";
-        lastFeedback = "✔ 完成！";
+        lastFeedback = Feedback.pick("done") || "✔ 完成！";
         notify();
         if (hooks.onDone) hooks.onDone({ ...stats });
       }
@@ -95,7 +95,16 @@
           return true;
         }
         stats.wrong++;
-        lastFeedback = "✘ 不是正着，再想想（可点「提示」或「显示答案」）";
+        const bs = boardState();
+        const mvArr = [f0, r0, f1, r1];
+        if (!X.isLegal(bs.board, bs.side, mvArr)) {
+          const why = X.illegalReason(bs.board, bs.side, mvArr);
+          lastFeedback = Feedback.pick("illegal:" + why) ||
+            "✘ 这步不合规则（马腿/象眼/炮架/九宫/照面，想想是哪条）";
+        } else {
+          lastFeedback = Feedback.pick("retry") ||
+            "✘ 不是正着，再想想（可点「提示」或「显示答案」）";
+        }
         Sound.play("illegal");
         notify();
         return false;

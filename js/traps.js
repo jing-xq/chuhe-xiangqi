@@ -14,6 +14,19 @@
   try { clsCache = JSON.parse(localStorage.getItem(CLS_KEY) || "{}"); } catch (e) {}
   function saveCls() { try { localStorage.setItem(CLS_KEY, JSON.stringify(clsCache)); } catch (e) {} }
 
+  /* T3：data/traps/<id>.json overlay（离线引擎分类 + 为什么上当/错在哪/怎么识破三段文案）。
+   * 有 overlay 的局分类与数字以 overlay 为准（与文案自洽），运行时不再重复分类。 */
+  let overlays = {};
+  function clsOf(id) { return overlays[id] || clsCache[id]; }
+  function loadOverlays() {
+    return Promise.all(lessons.map(l =>
+      fetch("data/traps/" + l.id + ".json")
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => { if (d && d.cls) overlays[l.id] = d; })
+        .catch(() => {})
+    ));
+  }
+
   let els = {}, board = null, quiz = null, cur = null;
   let filter = "all";        // all | 飞刀 | 骗招
   let lastClsStart = 0;      // 时间戳防重（避免僵尸 await 卡死分类）
@@ -88,6 +101,7 @@
     const idx = await fetch("data/index.json").then(r => r.json());
     const cat = idx.categories.find(c => c.id === "I");
     lessons = cat ? cat.lessons : [];
+    await loadOverlays();
     renderList();
     // 注意：分类不在 mount 时启动（否则一开机就占用引擎），改由 show() 触发
   }
@@ -101,7 +115,7 @@
       for (let i = 0; i < 180 && !Engine.ready; i++) await new Promise(r => setTimeout(r, 500));
       if (!Engine.ready) { els.note.textContent = "引擎不可用：无法自动分类，可直接练习。"; return; }
     }
-    const pending = lessons.filter(l => !clsCache[l.id]);
+    const pending = lessons.filter(l => !clsCache[l.id] && !overlays[l.id]);
     if (!pending.length) { renderList(); return; }
     els.note.textContent = "引擎正在判定飞刀/骗招（" + pending.length + " 局）…";
     for (const l of pending) {
@@ -185,7 +199,7 @@
   function renderList() {
     els.list.innerHTML = "";
     const shown = lessons.filter(l => {
-      const c = clsCache[l.id];
+      const c = clsOf(l.id);
       if (filter === "all") return true;
       return c && c.cls === filter;
     });
@@ -194,7 +208,7 @@
       return;
     }
     for (const l of shown) {
-      const c = clsCache[l.id];
+      const c = clsOf(l.id);
       const item = document.createElement("div");
       item.className = "trap-item";
       const badge = c
@@ -244,7 +258,7 @@
     const line = [];
     let nodes = data.moves || [];
     while (nodes.length && line.length < 60) { line.push(nodes[0]); nodes = nodes[0].ch || []; }
-    const c = clsCache[meta.id];
+    const c = clsOf(meta.id);
     const trapPly = c && c.trapPly ? c.trapPly : null;
     flow = { meta, data, line, trapPly, stage: "lecture", ply: 0 };
     els.empty.classList.add("hidden");
@@ -274,6 +288,14 @@
     }
     if (c && c.cls && c.cls !== "未知") {
       els.clsinfo.innerHTML += "<br><span class='dim'>分类依据：引擎短时搜索初筛（损失分差），供参考。</span>";
+      // T3 三段文案：为什么上当 / 错在哪 / 怎么识破（overlay 提供）
+      if (c.lureWhy) {
+        els.clsinfo.innerHTML += "<div style='margin-top:8px;line-height:1.7'>" +
+          "🎣 <b>为什么容易上当</b>：" + c.lureWhy + "<br>" +
+          (c.mistakeWhy ? "❌ <b>上当错在哪</b>：" + c.mistakeWhy + "<br>" : "") +
+          (c.declineHow ? "🧐 <b>怎么识破</b>：" + c.declineHow : "") +
+          "</div>";
+      }
     }
   }
 
@@ -329,7 +351,7 @@
     board.update({ board: pos.board, turn: pos.side, lastMove: last, interactive: false, hint: null });
     stageLabel("陷阱讲解");
 
-    const c = clsCache[meta.id] || {};
+    const c = clsOf(meta.id) || {};
     const trapNode = line[trapPly - 1];
     const victimNode = line[trapPly];
     const p1 = posOf(data, line, trapPly);
@@ -341,6 +363,7 @@
       (c.cls === "骗招" ? "骗招" : c.cls === "飞刀" ? "飞刀" : "关键陷阱") + "。<br>";
     if (victimNode) html += "对方若随手应以谱着「" + victimNode.cn + "」，将损 <b style='color:#ff9070'>" + (c.fall || "?") + "</b> 分，正中下怀！<br>";
     html += "正解是「<b style='color:#7fd492'>" + declineCn + "</b>」（引擎推荐）。<br>";
+    if (c.mistakeWhy) html += "<span style='color:#e8cf8a'>💡 上当错在哪：" + c.mistakeWhy + "</span><br>";
     if (trapNode.c) html += "<span style='color:#e8cf8a'>💬 原谱评注：" + trapNode.c + "</span>";
     setPanel(html);
     setButtons([
@@ -399,7 +422,7 @@
   function onQuizDone(stats) {
     Sound.play("check");
     if (flow.stage !== "quiz") return;
-    const c = clsCache[flow.meta.id] || {};
+    const c = clsOf(flow.meta.id) || {};
     flow.stage = "debrief";
     stageLabel("上当线完成");
     setPanel("🎉 漂亮！你已经掌握了这步陷阱着（共走 " + stats.steps + " 步，试错 " + stats.wrong + " 次）。<br>" +
@@ -415,7 +438,7 @@
   /* 第 4 阶段：识破线 */
   async function showDecline() {
     const { data, line, trapPly, meta } = flow;
-    const c = clsCache[meta.id] || {};
+    const c = clsOf(meta.id) || {};
     flow.stage = "decline";
     stageLabel("识破变化");
     const p1 = posOf(data, line, trapPly);
@@ -442,6 +465,7 @@
           : "对方识破后损 " + c.loss + " 分，介于两者之间。";
       html = "🧐 对方识破了陷阱，走的是「<b style='color:#7fd492'>" + declineCn + "</b>」。<br>" +
         evalTxt + "<br>" + lossTxt +
+        (c.declineHow ? "<br><span style='color:#e8cf8a'>🧭 识破要点：" + c.declineHow + "</span>" : "") +
         "<br><span class='dim'>记住这个感觉：用飞刀时心态放松，用骗招时务必确认对手大概率会上当。</span>";
     } else {
       html = "本局未收录识破变化（引擎分类时尚未检出）。";
@@ -476,6 +500,7 @@
       // 后台分类可暂停：离开本页即挂起，排队任务等回来再继续
       Engine.setBackgroundPaused(true);
     },
-    _classifyOne: meta => classifyOne(meta)
+    _classifyOne: meta => classifyOne(meta),
+    _clsOf: clsOf
   };
 })();
