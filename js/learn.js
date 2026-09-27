@@ -303,9 +303,10 @@
       const winsN = recent.filter(g => g.result === "win").length;
       items.push({
         type: "battle", title: "实战一盘（" + finalLevel + "）",
+        // 无对局记录时不用语料（变体里的 {n}/{wins} 会落空成空串）
         reason: recent.length
           ? pickReason(bank, "plan:reasonBattle", { n: recent.length, wins: winsN, level: finalLevel }, "最近 " + recent.length + " 盘 " + winsN + " 胜，对手定为 " + finalLevel)
-          : pickReason(bank, "plan:reasonBattle", { level: finalLevel }, "还没有实战记录，先来一盘轻松的"),
+          : "还没有实战记录，先来一盘轻松的",
         link: { battle: finalLevel }
       });
     }
