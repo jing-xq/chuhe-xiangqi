@@ -1,11 +1,35 @@
 @echo off
-chcp 65001 >nul
-cd /d %~dp0
-echo æ­£åœ¨å¯åŠ¨è±¡æ£‹æ•™å­¦æœåŠ¡å™¨...
-start "è±¡æ£‹æ•™å­¦æœåŠ¡å™¨" /min python "%~dp0tools\serve.py" 8000
-timeout /t 2 >nul
+title ÏóÆå½ÌÑ§
+cd /d "%~dp0"
+echo ÕýÔÚÆô¶¯ÏóÆå½ÌÑ§·þÎñÆ÷...
+
+rem ¶Ë¿Ú 8000 ÒÑÓÐ·þÎñÔÚ¼àÌý£¨ÉÏ´ÎµÄ·þÎñ»¹ÔÚÅÜ£©¾Í²»ÖØ¸´Æô¶¯£¬Ö±½Ó´ò¿ªÒ³Ãæ
+netstat -ano | findstr ":8000" | findstr /i "LISTENING" >nul
+if not errorlevel 1 goto open
+
+rem ÆðÒ»¸ö×îÐ¡»¯´°¿ÚÅÜ·þÎñÆ÷£»python ²»ÔÚÊ±×Ô¶¯»» py Æô¶¯Æ÷£»
+rem ÈôÁ½Õß¶¼Ê§°Ü£¬´°¿Ú»áÍ£ÔÚ±¨´í»­Ãæ£¨²»ÔÙÒ»ÉÁ¶ø¹ý£©
+start "ÏóÆå½ÌÑ§·þÎñÆ÷" /min cmd /c "python tools\serve.py 8000 || py tools\serve.py 8000 & echo. & echo [·þÎñÆ÷ÒÑÍË³ö] Çë°ÑÉÏ·½±¨´í½ØÍ¼·´À¡£»°´ÈÎÒâ¼ü¹Ø±Õ±¾´°¿Ú... & pause >nul"
+
+rem µÈ·þÎñ¾ÍÐ÷£¨×î¶àÔ¼ 5 Ãë£©£¬Æð²»À´¾ÍÍ£ÔÚÌáÊ¾ÉÏ
+set /a tries=0
+:wait
+ping -n 2 127.0.0.1 >nul
+netstat -ano | findstr ":8000" | findstr /i "LISTENING" >nul
+if not errorlevel 1 goto open
+set /a tries+=1
+if %tries% geq 5 goto fail
+goto wait
+
+:fail
+echo.
+echo [Æô¶¯Ê§°Ü] ·þÎñÆ÷Ã»ÓÐÆðÀ´¡£Çë¿´ÈÎÎñÀ¸¡¸ÏóÆå½ÌÑ§·þÎñÆ÷¡¹´°¿ÚÀïµÄ±¨´íÐÅÏ¢¡£
+pause
+exit /b 1
+
+:open
 start "" "http://127.0.0.1:8000/"
 echo.
-echo è½¯ä»¶å·²åœ¨æµè§ˆå™¨ä¸­æ‰“å¼€ï¼š http://127.0.0.1:8000/
-echo å…³é—­æœåŠ¡å™¨ï¼šåœ¨ä»»åŠ¡æ æ‰¾åˆ°â€œè±¡æ£‹æ•™å­¦æœåŠ¡å™¨â€çª—å£å…³æŽ‰å³å¯ã€‚
-timeout /t 5 >nul
+echo Èí¼þÒÑÔÚä¯ÀÀÆ÷´ò¿ª£ºhttp://127.0.0.1:8000/
+echo ·þÎñÆ÷ÔÚÈÎÎñÀ¸µÄ¡¸ÏóÆå½ÌÑ§·þÎñÆ÷¡¹×îÐ¡»¯´°¿ÚÀï£¬¹Ø±ÕËü¼´Í£Ö¹·þÎñ¡£
+timeout /t 4 >nul
