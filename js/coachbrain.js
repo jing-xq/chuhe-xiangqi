@@ -14,11 +14,11 @@
 
   const X = window.Xiangqi;
   const START_FEN = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-  const MATE = 99000;              // 引擎 mate 分编码阈值（见 engine.js）
-  const ENDGAME_MAT = 4600;        // 双方非将子力总值低于此视为残局（开局约 9600）
+  const MATE = XqConst.MATE;               // 引擎 mate 分编码阈值（见 engine.js）
+  const ENDGAME_MAT = XqConst.ENDGAME_MAT; // 双方非将子力总值低于此视为残局（开局约 9600）
   const OPEN_PLIES = 20;           // 前 20 个半回合视为开局
-  // 子力价值（×100 分）：车9 炮4.5 马4 士象2 兵1
-  const VAL = { k: 100000, r: 900, c: 450, n: 400, a: 200, b: 200, p: 100 };
+  // 子力价值（×100 分）：车9 炮4.5 马4 士象2 兵1（统一出处见 js/constants.js）
+  const VAL = XqConst.VAL_COACH;
   const PN = { k: "将帅", r: "车", n: "马", c: "炮", a: "士象", b: "士象", p: "兵卒" };
 
   /* 棋理知识库：问题类别 → 讲解模板 */
@@ -236,7 +236,7 @@
       const loss = before !== null && after !== null ? Math.max(0, before - after) : 0;
       const side = states[i].side;
       let cn = m.cn;
-      try { cn = Notation.chinese(states[i].board, side, X.parseMove(m.m)); } catch (e) {}
+      try { cn = Notation.chinese(states[i].board, side, X.parseMove(m.m)); } catch (e) { Diag.warn("coachbrain.cn", e); }
       const diag = loss >= 40 || side === my
         ? diagnose(states[i], i, game.moves, evals, infos, side)
         : null;

@@ -14,7 +14,7 @@
     },
     get(id) { return this.data[id] || null; },
     set(id, val) { this.data[id] = val; this.save(); },
-    save() { try { localStorage.setItem(this.key, JSON.stringify(this.data)); } catch (e) {} },
+    save() { try { localStorage.setItem(this.key, JSON.stringify(this.data)); } catch (e) { Diag.storageFail("app.store.save", e); } },
     doneCount() { return Object.values(this.data).filter(v => v.done).length; }
   };
   store.load();
@@ -110,8 +110,8 @@
 
   /* ---------- 课程目录 ---------- */
   async function boot() {
-    const res = await fetch("data/index.json");
-    indexData = await res.json();
+    if ($("app-version")) $("app-version").textContent = "v" + (window.XqConst && XqConst.APP_VERSION || "?");
+    indexData = await Data.getJSON("data/index.json");
     renderSidebar("");
     updateProgressSummary();
     // 新手提示
@@ -200,8 +200,7 @@
     Sound.play("click");
     $("welcome-banner").classList.add("hidden");
     currentLessonId = lessonMeta.id;
-    const res = await fetch(lessonMeta.file);
-    currentLesson = await res.json();
+    currentLesson = await Data.getJSON(lessonMeta.file);
     $("lesson-title").textContent = lessonMeta.title;
     const cat = indexData.categories.find(c => c.id === lessonMeta.category || c.id === currentLesson.category);
     $("crumb-cat").textContent = cat ? cat.name : "";

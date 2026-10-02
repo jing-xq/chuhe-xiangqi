@@ -170,6 +170,19 @@ def main():
             f.write("\n".join(failures))
         print("完整清单: " + fail_path)
 
+    # 入库校验闸门：课树合法性 / cn 记谱 / 空课机器校验，非法即整体失败（不得带伤上线）。
+    # 校验器是唯一出处：node tools/check_lessons.js（本脚本只负责调用，不复刻规则）。
+    import subprocess
+    try:
+        r = subprocess.run(["node", os.path.join(HERE, "check_lessons.js")], cwd=ROOT)
+    except FileNotFoundError:
+        print("闸门未执行：找不到 node，请先安装 Node.js 后重试")
+        sys.exit(1)
+    if r.returncode != 0:
+        print("课树校验未通过（见上方 check_lessons 输出），已中止入库")
+        sys.exit(1)
+    print("入库校验闸门通过")
+
 
 if __name__ == "__main__":
     main()

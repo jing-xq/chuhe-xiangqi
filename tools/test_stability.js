@@ -49,8 +49,11 @@ function load(rel) {
   vm.runInContext(fs.readFileSync(p, "utf8"), sandbox, { filename: rel });
 }
 
+load("js/diag.js");
 load("js/rules.js");
 load("js/notation.js");
+load("js/constants.js");
+load("js/trapcls-core.js");
 load("js/engine.js");
 sandbox.window.Sound = { play() {} };   // quiz/guide 依赖
 load("js/quiz.js");
@@ -342,6 +345,60 @@ const INIT = X.INIT_FEN;
   {
     check("PlayDebug 可用（会话守卫在浏览器流程验收）", !!sandbox.window.PlayDebug);
     check("SparDebug 可用（show() 恢复策略在浏览器流程验收）", !!sandbox.window.SparDebug);
+  }
+
+  // ---- 用例 11：飞刀/骗招分类核心（trapcls-core 纯函数，运行时与离线分类器共用） ----
+  console.log("⑩ TrapCls 分类核心：假搜索桩覆盖上当判定与三档分类");
+  {
+    const TrapCls = sandbox.window.TrapCls;
+    const wait0 = () => Promise.resolve();   // 注入立即返回，测试不真等 300ms
+    // 基础局：4 手主线（INIT 起，源格均有子；applyMove 不校验合法性，够纯函数推演即可）。
+    // 课程数据的主线是嵌套链 moves[0].ch[0].ch[…]，与 data/lessons 实际格式一致。
+    const node4 = { m: "b9c9", cn: "马2进3" };
+    const node3 = { m: "e2e6", cn: "炮五进四", ch: [node4] };
+    const node2 = { m: "h9g9", cn: "马8进7", ch: [node3] };
+    const moves = [{ m: "h2e2", cn: "炮二平五", ch: [node2] }];
+    const data = { fen: INIT, moves };
+
+    // 短线 <4 手直接未知
+    const r0 = await TrapCls.classifyOne({ fen: INIT, moves: [{ m: "h2e2", cn: "炮二平五", ch: [node2] }] }, async () => [], { wait: wait0 });
+    check("短线 <4 手 → 未知", r0.cls === "未知" && r0.trapPly === null, JSON.stringify(r0));
+
+    // j=1：首选 e3e4（cp 0）、实际着 h9g9（cp -200）→ fall=200 上当；
+    // cands0 首选 cp 0；识破线评估 -400 → loss=400 > 150 → 骗招
+    let searched = [];
+    const r1 = await TrapCls.classifyOne(data, (fen, ms, mpv) => {
+      searched.push({ ms, mpv });
+      if (mpv === 4) return Promise.resolve([{ mv: "e3e4", cp: 0 }, { mv: "h9g9", cp: -200 }]);
+      return Promise.resolve([{ mv: "h9g9", cp: -400 }]);
+    }, { wait: wait0 });
+    check("上当点 fall=200 → trapPly=1", r1.trapPly === 1 && r1.fall === 200, JSON.stringify(r1));
+    check("loss=400 → 骗招", r1.cls === "骗招" && r1.loss === 400, JSON.stringify(r1));
+    check("搜索时长默认 300、MultiPV 4/1 两路都走到",
+      searched.every(s => s.ms === 300) && searched.some(s => s.mpv === 4) && searched.some(s => s.mpv === 1),
+      JSON.stringify(searched));
+
+    // 首选即实际着 → fall=0 不算上当 → 未知
+    const r2 = await TrapCls.classifyOne(data, () => Promise.resolve([{ mv: "h9g9", cp: -10 }]), { wait: wait0 });
+    check("无上当（fall<150）→ 未知", r2.cls === "未知" && r2.trapPly === null, JSON.stringify(r2));
+
+    // 搜索返回空：重试一次（时长 ×2）仍空 → 未知
+    const calls = [];
+    const r3 = await TrapCls.classifyOne(data, (fen, ms) => { calls.push(ms); return Promise.resolve([]); }, { wait: wait0 });
+    check("候选为空（含 2 倍时长重试）→ 未知", r3.cls === "未知" && calls.length === 2 && calls[1] === calls[0] * 2, JSON.stringify(calls));
+
+    // 识破线 -100 → loss=100 → 险招；自定义 ms 透传
+    let msSeen = 0;
+    const r4 = await TrapCls.classifyOne(data, (fen, ms, mpv) => {
+      msSeen = ms;
+      return Promise.resolve(mpv === 4 ? [{ mv: "e3e4", cp: 0 }, { mv: "h9g9", cp: -200 }] : [{ mv: "h9g9", cp: -100 }]);
+    }, { ms: 400, wait: wait0 });
+    check("loss=100 → 险招，ms 参数生效", r4.cls === "险招" && r4.loss === 100 && msSeen === 400, JSON.stringify(r4));
+
+    // 识破线 0 → loss=0 → 飞刀
+    const r5 = await TrapCls.classifyOne(data, (fen, ms, mpv) =>
+      Promise.resolve(mpv === 4 ? [{ mv: "e3e4", cp: 0 }, { mv: "h9g9", cp: -200 }] : [{ mv: "h9g9", cp: 0 }]), { wait: wait0 });
+    check("loss=0 → 飞刀", r5.cls === "飞刀" && r5.loss === 0, JSON.stringify(r5));
   }
 
   // ---- 存量正式测试与数据校验另行运行：node tools/test_opening_logic.js / python -B tools/build_openings.py --check ----

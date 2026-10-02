@@ -39,8 +39,10 @@ function load(rel) {
   vm.runInContext(fs.readFileSync(p, "utf8"), sandbox, { filename: rel });
 }
 
+load("js/diag.js");
 load("js/rules.js");
 load("js/notation.js");
+load("js/constants.js");
 load("js/opening.js");
 
 const X = sandbox.window.Xiangqi;

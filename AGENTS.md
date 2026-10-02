@@ -30,6 +30,10 @@
 |---|---|---|
 | `rules.js` | `Xiangqi` | 规则引擎：FEN 解析、走法生成、合法性判断（FEN 首行是黑方底线 rank 9；内部坐标 file a-i / rank 0-9，兼容鹏飞 .pfc 的 h2e2 格式） |
 | `notation.js` | — | 中文着法（炮二平五）与坐标互转 |
+| `diag.js` | `Diag` | 诊断层：各模块静默 catch 的异常记入环形缓冲（最多 50 条），`storageFail` 节流弹全局横幅；展示在「我的 → 备份与设置」诊断折叠块。新的 best-effort try/catch 应记 `Diag.warn("模块.位置", e)`，不要再留空 catch |
+| `constants.js` | `XqConst` | 全局常量唯一出处：`APP_VERSION`（顶栏显示，变更记 CHANGELOG.md）、`MATE`、两套子力价值口径（`VAL_COACH` 拆解 / `VAL_SPAR` 陪练口述，与各自残局阈值必须同步改） |
+| `trapcls-core.js` | `TrapCls` | 飞刀/骗招分类纯函数（注入 searchFn）：`js/traps.js` 运行时与 `tools/gen_trap_cls.js` 离线共用同一实现，禁止再复制算法 |
+| `datacache.js` | `Data` | 静态数据文件内存缓存：同一 URL 会话内只 fetch/解析一次；`Data.bust()` 在导入备份/开发调试时失效。只用于 data/ 静态文件，API 请求与引擎二进制不走它 |
 | `md.js` | — | Markdown 渲染 |
 | `sound.js` | — | 音效（`assets/sound/*.wav`） |
 | `board.js` | `Board` | Canvas 棋盘绘制与走子交互 |
@@ -55,7 +59,7 @@
 
 ## 数据
 
-- `data/index.json`：课程索引（9 大分类 A–I，1472 课，`data/lessons/<分类>/<序号>.json`）。
+- `data/index.json`：课程索引（9 大分类 A–I，1471 课，`data/lessons/<分类>/<序号>.json`；原 D226 空课已摘除）。
 - `data/lessons/`：课程 JSON，格式 `{fen, win, moves:[{m, cn, ch(变着树)}], title, category, plies, vars, annotated}`。
 - `data/core/route.json`：新手路线 30 课（6 阶段，115 题），由 `tools/build_route.js` 生成：局面全部由基础 FEN + 着法序列经规则引擎推导校验（accept 可解、有干扰项、提示不泄露坐标——三级提示除外）。
 - `data/openings/`：8 个开局体系谱库（主线 20 手 + 变着 + 脱谱教学点），树结构：`moves[].ch[]` 中 `ch[0]` 为主线续着、`ch[1..]` 为变着；节点 `dev[]` 为对方脱谱着（含 `why/punish`）；`mainlineEndPly` 标记入中局点。`index.json` 为索引。
@@ -71,13 +75,13 @@
 - `build_openings.py`：谱库校验 + 补全 cn/重建 `index.json`；`--check` 只校验不写文件（CI 式快速检查）。
 - `apply_comments.py`：评注合并。
 - `_eng/`、`_work/`：工具中间产物目录（已 gitignore 相关项见 .gitignore：`.zcode/`、`__pycache__/`、`*.pyc`）。
-- `build_failures.log`、`_test_h7.py`：历史调试残留，非正式测试。
 
 ## 测试
 
+- **一键全量回归**：`tools/run_all_tests.bat`（GBK 编码，双击或在 cmd 跑）= 下面 5 套无头测试 + 谱库校验；日常改动至少跑它一遍。
 - **正式测试**：
   - `node tools/test_opening_logic.js` —— `js/opening.js` 的无头逻辑自测（Node 桩环境模拟浏览器），校验用户节点统计、掌握度公式（50·coverage + 30·punishRate + 20·min(games/5,1)，覆盖率分母为 offeredIds）与谱更新修剪。改动 `opening.js` 或 `build_openings.py` 后应跑它。
-  - `node tools/test_stability.js` —— 稳定性批次回归（对应规划文档 9.2 十条用例）：入门课 FEN 与任务判定（`Guide._steps`/`Guide._judge`）、胜负字段迁移（`Games.userResult`/`normWinner`）、损分视角（`Games._computeLosses`）、练习定时器取消、引擎调度器串行/优先级/取消/后台暂停、`CoachBrain._replay` 帧一致性。改动 guide/games/quiz/engine/coachbrain 后应跑它。
+  - `node tools/test_stability.js` —— 稳定性批次回归（对应规划文档 9.2 十条用例 + TrapCls 分类核心桩用例）：入门课 FEN 与任务判定（`Guide._steps`/`Guide._judge`）、胜负字段迁移（`Games.userResult`/`normWinner`）、损分视角（`Games._computeLosses`）、练习定时器取消、引擎调度器串行/优先级/取消/后台暂停、`CoachBrain._replay` 帧一致性、`TrapCls.classifyOne` 上当判定/三档分类。改动 guide/games/quiz/engine/coachbrain/trapcls-core 后应跑它。
 - `python -B tools/build_openings.py --check` —— 开局谱库校验（CI 式快速检查）。
   - `node tools/test_core_content.js` —— 核心路线内容复验 + Learn 状态分层/复习调度/buildPlan 规则回归。改动 `route.json`、`build_route.js`、`learn.js` 后应跑它。
   - `node tools/test_import_corpus.js` —— 棋谱导入容错语料回归（`data/copy/import_corpus.json`，parseGameText 断言逐例跑）。改动 `games.js` 的导入解析后应跑它。
@@ -97,7 +101,9 @@
 - 中文注释（文件头块注释说明全局对象 API，如 `/* 引擎封装… Engine.init() -> Promise<bool> */`），保持现有风格。
 - 全局对象挂在 `window` 上，IIFE + `"use strict"`，不使用 ES 模块/import。
 - localStorage key 统一带版本后缀，如 `xqteach-progress-v1`、`xq-openings-v1`、`xq-annotated-v1`。
-- 引擎分（cp）编码：mate 用 ±99000 阈值（见 `coachbrain.js`），评估显示钳制 ±3000。
+- 引擎分（cp）编码：mate 用 ±99000 阈值（唯一出处 `js/constants.js` 的 `XqConst.MATE`），评估显示钳制 ±3000。
+- 凡 innerHTML 拼接「语料文本 / 用户输入 / 存档内容」的路径必须过 `escapeHtml`（opening.js 有实现，可提为公共）；纯本地可信静态数据（课程/谱库/内置文案数组）可直拼。新接外部数据源时先想转义。
+- `.bat` 脚本一律 GBK 编码（本机 cmd 按 ANSI 逐行解析，UTF-8 中文行会字节错位成乱码命令直接崩，见 e8629c0）；路径用正斜杠可避免转义问题。
 
 ## 安全与注意事项
 

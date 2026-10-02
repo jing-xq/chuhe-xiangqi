@@ -11,10 +11,9 @@
 
   function load() {
     if (bank || loading) return loading || Promise.resolve();
-    loading = fetch("data/copy/feedback.json")
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
-      .then(data => { bank = (data && data.keys) || {}; })
-      .catch(() => { bank = {}; });
+    loading = Data.getJSON("data/copy/feedback.json")
+      .then(data => { bank = (data && data.keys) || {}; Diag.info("feedback.load", "语料 " + Object.keys(bank).length + " 组键"); })
+      .catch(e => { bank = {}; Diag.info("feedback.load", "语料缺失，已回退内置文案：" + e.message); });
     return loading;
   }
 
@@ -32,5 +31,8 @@
       vars && vars[k] !== undefined && vars[k] !== null ? String(vars[k]) : "");
   }
 
-  window.Feedback = { pick, fmt, load };
+  /* 诊断面板用：bank === null 未加载完成；{} 加载失败（回退内置）；否则正常 */
+  window.Feedback = { pick, fmt, load, get status() { return bank === null ? "loading" : Object.keys(bank).length; } };
+
+  load();   // 启动即加载（文件小且经 Data 缓存；此前只在首次 pick 才拉，诊断面板会一直显示「加载中」）
 })();

@@ -2,12 +2,15 @@
  * Backup.mount(container)  Backup.show() / hide()
  * 导出：全部 xq* 本地数据打包为带版本号的 JSON（默认剥离私教 API Key）。
  * 导入：版本检查 → 各类记录条数预览 → 替换 / 合并（按 id 去重）→ 刷新页面生效。
- * 保存失败统一通过 window 事件 "xq-toast" 提示，这里挂全局横幅。 */
+ * 保存失败统一通过 window 事件 "xq-toast" 提示，这里挂全局横幅。
+ * 另挂「诊断信息」折叠块（Diag 最近记录 + 引擎/语料状态 + 上次备份时间，P1-2/P1-5）。 */
 (function () {
   "use strict";
 
   const FORMAT_VERSION = 1;
   const API_KEY_HOLDER = "xq-coach-settings";   // 其中的 key 字段不导出
+  const LAST_BACKUP_KEY = "xq-last-backup-at";  // 上次导出备份的时间戳（本地提示用）
+  let renderDiagRef = null;                     // show() 时刷新诊断块
 
   function collect() {
     const keys = {};
@@ -16,7 +19,7 @@
       if (k.indexOf("xq") !== 0) continue;
       let val = localStorage.getItem(k);
       if (k === API_KEY_HOLDER) {
-        try { const o = JSON.parse(val); delete o.key; val = JSON.stringify(o); } catch (e) {}
+        try { const o = JSON.parse(val); delete o.key; val = JSON.stringify(o); } catch (e) { Diag.warn("backup.stripKey", e); }
       }
       keys[k] = val;
     }
@@ -52,7 +55,7 @@
       if (o && n && typeof o === "object" && typeof n === "object" && !Array.isArray(o) && !Array.isArray(n)) {
         return JSON.stringify(Object.assign({}, o, n));
       }
-    } catch (e) {}
+    } catch (e) { Diag.warn("backup.mergeValue", e); }
     return newV;
   }
 
@@ -76,14 +79,22 @@
         <div id="bk-report" class="backup-report"></div>
         <h3>🗄️ 当前本地数据</h3>
         <div id="bk-stats" class="backup-report"></div>
+        <details id="diag-box" style="margin-top:14px">
+          <summary style="cursor:pointer">🩺 诊断信息（状态与最近警告）</summary>
+          <div id="diag-status" class="backup-report"></div>
+          <div id="diag-list" class="backup-report" style="max-height:220px;overflow:auto"></div>
+          <div class="backup-btns"><button id="diag-copy">复制诊断信息</button></div>
+        </details>
       </div>`;
     const $ = id => container.querySelector("#" + id);
     const text = $("bk-text"), report = $("bk-report");
 
     $("bk-export").onclick = () => {
       text.value = JSON.stringify({ format: "xiangqi-teach-backup", version: FORMAT_VERSION, at: new Date().toISOString(), keys: collect() }, null, 1);
+      try { localStorage.setItem(LAST_BACKUP_KEY, String(Date.now())); } catch (e) { Diag.warn("backup.stamp", e); }
       report.innerHTML = "<div class='ok'>✅ 已导出 " + Object.keys(collect()).length + " 类数据（API Key 已剥离）。请复制或下载保存。</div>";
       $("bk-stats").innerHTML = statsOf(collect());
+      renderDiag();
     };
     $("bk-copy").onclick = () => {
       if (!text.value) { report.innerHTML = "<div class='bad'>请先导出。</div>"; return; }
@@ -141,6 +152,31 @@
     $("bk-import-merge").onclick = () => doImport(true);
     $("bk-stats").innerHTML = statsOf(collect());
 
+    /* ---------- 诊断信息（P1-2/P1-5） ---------- */
+    function renderDiag() {
+      const last = Number(localStorage.getItem(LAST_BACKUP_KEY) || 0);
+      const days = last ? Math.floor((Date.now() - last) / 864e5) : null;
+      const engineTxt = Engine.ready ? "就绪" : "不可用 / 初始化中";
+      const fb = typeof Feedback !== "undefined" ? Feedback.status : "—";
+      const fbTxt = fb === "loading" ? "加载中" : typeof fb === "number" ? (fb ? fb + " 组键" : "缺失（已回退内置文案）") : "—";
+      const recs = Diag.last(20);
+      $("diag-status").innerHTML =
+        "<div>引擎：" + engineTxt + "　｜　反馈语料：" + fbTxt + "</div>" +
+        "<div>上次导出备份：" + (days === null ? "<b>从未备份</b>——学习记录只存在本浏览器，建议立即导出一次" : days === 0 ? "今天 ✓" : "<b>" + days + "</b> 天前") + "</div>" +
+        "<div class='dim'>以下为各模块静默捕获的异常记录（Diag 环形缓冲，最多保留 50 条）。</div>";
+      $("diag-list").innerHTML = recs.length
+        ? recs.map(r => "<div>" + r.at + " [" + r.level + "] " + r.tag + " — " + r.detail + "</div>").join("")
+        : "<div class='dim'>暂无记录。功能静默失败时（如私教不说话、分类不出）先来这里找线索。</div>";
+    }
+    $("diag-copy").onclick = () => {
+      navigator.clipboard.writeText(Diag.dump()).then(
+        () => { $("diag-list").innerHTML = "<div class='ok'>诊断信息已复制到剪贴板。</div>"; },
+        () => {}
+      );
+    };
+    renderDiag();
+    renderDiagRef = renderDiag;
+
     // 全局保存失败横幅（8.2 存储失败提示）
     if (!window.__xqToastHook) {
       window.__xqToastHook = true;
@@ -154,5 +190,9 @@
     }
   }
 
-  window.Backup = { mount, show() {}, hide() {} };
+  window.Backup = {
+    mount,
+    show() { if (renderDiagRef) renderDiagRef(); },
+    hide() {}
+  };
 })();

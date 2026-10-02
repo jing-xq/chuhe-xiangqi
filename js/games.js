@@ -9,7 +9,7 @@
   let data = [];
   try { data = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { data = []; }
 
-  function persist() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { Diag.storageFail("games.persist", e); } }
 
   /* ---------- 胜负字段约定（见规划文档 3.3） ----------
    * 新存档一律写 winner（"r"|"b"|"draw"）+ mySide + reason；用户胜负由 winner 与 mySide 推导，
@@ -643,7 +643,7 @@
     try {
       const mv = X.parseMove(mvText);
       if (X.isLegal(board, side, mv)) return Notation.chinese(board, side, mv);
-    } catch (e) {}
+    } catch (e) { Diag.warn("games.safeCnLocal", e); }
     return mvText;
   }
 

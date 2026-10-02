@@ -23,7 +23,7 @@
       try { this.data = JSON.parse(localStorage.getItem(KEY) || "{}"); }
       catch (e) { this.data = {}; }
     },
-    save() { try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) {} },
+    save() { try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) { Diag.storageFail("opening.save", e); } },
     get(id, side) {
       const k = id + "|" + side;
       if (!this.data[k]) {
@@ -378,7 +378,7 @@
     }
     els.devrate.onchange = () => {
       devRate = Number(els.devrate.value) || 0.35;
-      try { localStorage.setItem(RATE_KEY, els.devrate.value); } catch (e) {}
+      try { localStorage.setItem(RATE_KEY, els.devrate.value); } catch (e) { Diag.storageFail("opening.saveRate", e); }
     };
 
     loadAll();
@@ -396,7 +396,7 @@
   /* ---------- 数据加载 ---------- */
   function loadAll() {
     els.dashNote.textContent = "加载体系列表…";
-    fetch("data/openings/index.json").then(r => r.json()).then(idx => {
+    Data.getJSON("data/openings/index.json").then(idx => {
       indexData = idx;
       renderDash();
       els.dashNote.textContent = "加载谱库…";
@@ -415,7 +415,12 @@
   function revOf(data) {
     const line = [];
     let nodes = data.moves || [];
-    while (nodes.length && line.length < 40) { line.push(nodes[0].m); nodes = nodes[0].ch ? [nodes[0].ch[0]] : []; }
+    // 主线末节点的 ch 是空数组（真值）——必须按长度判断，否则取出 ch[0]=undefined 再读 .m 抛错
+    while (nodes.length && nodes[0] && line.length < 40) {
+      line.push(nodes[0].m);
+      const ch = nodes[0].ch || [];
+      nodes = ch.length ? [ch[0]] : [];
+    }
     let h = 5381;
     const str = line.join(" ");
     for (let i = 0; i < str.length; i++) { h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; }
@@ -425,7 +430,7 @@
     if (sysCache[id]) return Promise.resolve(sysCache[id]);
     const meta = indexData.systems.find(s => s.id === id);
     if (!meta) return Promise.reject(new Error("未知体系 " + id));
-    return fetch(meta.file).then(r => r.json()).then(data => {
+    return Data.getJSON(meta.file).then(data => {
       sysCache[id] = data;
       sysRev[id] = revOf(data);
       pruneStore(id, data);

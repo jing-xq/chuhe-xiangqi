@@ -10,17 +10,13 @@
 
   function loadRoute() {
     if (route) return Promise.resolve();
-    return fetch("data/core/route.json").then(r => {
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.json();
-    }).then(data => { route = data; });
+    return Data.getJSON("data/core/route.json").then(data => { route = data; });
   }
 
   /* T2：推荐理由语料（缺失静默降级到内置句） */
   function loadReasonBank() {
     if (reasonBank) return Promise.resolve();
-    return fetch("data/copy/feedback.json")
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
+    return Data.getJSON("data/copy/feedback.json")
       .then(d => { reasonBank = (d && d.keys) || {}; })
       .catch(() => { reasonBank = {}; });
   }

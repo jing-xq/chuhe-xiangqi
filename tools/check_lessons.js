@@ -10,7 +10,7 @@
  *   ③ 走法经 Xiangqi.isLegal 合法（含自将/照面过滤）
  *   ④ cn === Notation.chinese(board, side, mv)（源数据曾把将帅「平X路」误写成「进/退+路数」）
  *
- * 退出码：发现非法着法（数据损坏级）→ 1；仅 cn 不一致 → 0（--fix-cn 可修）。
+ * 退出码：发现非法着法 / 空课（数据损坏级）→ 1；仅 cn 不一致 → 0（--fix-cn 可修）。
  * 输出供批量文案流水线（低成本模型批量工作规划.md）的合并回归使用。
  */
 "use strict";
@@ -46,7 +46,12 @@ for (const cat of idx.categories) {
     const raw = fs.readFileSync(file, "utf8");
     const data = JSON.parse(raw);
     stat.lessons++;
-    if (!Array.isArray(data.moves) || !data.moves.length) { emptyLessons.push(cat.id + "/" + les.id); continue; }
+    if (!Array.isArray(data.moves) || !data.moves.length) {
+      // 空课 = 内容缺失（入库闸门：D226 曾以 title"403"、零着法无声上线）
+      stat.illegal++; illegalTotal++;
+      emptyLessons.push(cat.id + "/" + les.id);
+      continue;
+    }
     let changed = false;
     const start = X.parseFen(data.fen);
 
@@ -102,7 +107,7 @@ for (const [cid, s] of Object.entries(perCat)) {
   console.log("  " + cid + "  课 " + s.lessons + "  节点 " + s.nodes +
     (s.illegal || s.cnMismatch ? "  非法 " + s.illegal + "  cn不一致 " + s.cnMismatch : ""));
 }
-if (emptyLessons.length) console.log("空课（无 moves，不视为错误）：" + emptyLessons.join(" "));
+if (emptyLessons.length) console.log("空课（无 moves，数据损坏级）：" + emptyLessons.join(" "));
 if (Object.keys(mismatchByPiece).length) console.log("cn 不一致按兵种：" + JSON.stringify(mismatchByPiece));
 if (illegalSamples.length) { console.log("问题样本（前 20）："); illegalSamples.forEach(s => console.log("  " + s)); }
 if (FIX_CN) console.log("--fix-cn：改写 cn " + fixedNodes + " 条，涉及 " + fixedFiles + " 个文件");

@@ -32,10 +32,18 @@
       settings: { includeReview: true, includeNew: true, includeBattle: true, battleLevel: "auto" }
     };
   }
+  const QUOTA_HINT_BYTES = 3 * 1024 * 1024;
+  let quotaHinted = false;   // 本次会话只提醒一次
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(data)); }
-    catch (e) {
-      try { window.dispatchEvent(new CustomEvent("xq-toast", { detail: "学习记录保存失败（存储空间不足或被禁用），近期进度可能丢失。" })); } catch (e2) {}
+    const blob = JSON.stringify(data);
+    try { localStorage.setItem(KEY, blob); }
+    catch (e) { Diag.storageFail("learn.save", e); }
+    // 5MB 配额逼近预警（P1-5）：>3MB 时提醒导出备份
+    if (!quotaHinted && blob.length > QUOTA_HINT_BYTES) {
+      quotaHinted = true;
+      try {
+        window.dispatchEvent(new CustomEvent("xq-toast", { detail: "学习档案已超过 3MB（localStorage 上限约 5MB），建议到「我的 → 备份与设置」导出备份。" }));
+      } catch (e2) {}
     }
   }
 

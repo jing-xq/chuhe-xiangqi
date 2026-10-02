@@ -11,8 +11,8 @@
   const CLS_KEY = "xq-trapcls-v2";
   let lessons = [];          // I 类课程
   let clsCache = {};
-  try { clsCache = JSON.parse(localStorage.getItem(CLS_KEY) || "{}"); } catch (e) {}
-  function saveCls() { try { localStorage.setItem(CLS_KEY, JSON.stringify(clsCache)); } catch (e) {} }
+  try { clsCache = JSON.parse(localStorage.getItem(CLS_KEY) || "{}"); } catch (e) { Diag.warn("traps.loadCls", e); }
+  function saveCls() { try { localStorage.setItem(CLS_KEY, JSON.stringify(clsCache)); } catch (e) { Diag.storageFail("traps.saveCls", e); } }
 
   /* T3：data/traps/<id>.json overlay（离线引擎分类 + 为什么上当/错在哪/怎么识破三段文案）。
    * 有 overlay 的局分类与数字以 overlay 为准（与文案自洽），运行时不再重复分类。 */
@@ -20,8 +20,7 @@
   function clsOf(id) { return overlays[id] || clsCache[id]; }
   function loadOverlays() {
     return Promise.all(lessons.map(l =>
-      fetch("data/traps/" + l.id + ".json")
-        .then(r => (r.ok ? r.json() : null))
+      Data.getJSON("data/traps/" + l.id + ".json")
         .then(d => { if (d && d.cls) overlays[l.id] = d; })
         .catch(() => {})
     ));
@@ -98,7 +97,7 @@
   }
 
   async function loadLessons() {
-    const idx = await fetch("data/index.json").then(r => r.json());
+    const idx = await Data.getJSON("data/index.json");
     const cat = idx.categories.find(c => c.id === "I");
     lessons = cat ? cat.lessons : [];
     await loadOverlays();
@@ -131,69 +130,13 @@
     renderList();
   }
 
-  /* 判定一局：
-   * 1) 沿主线扫描前 12 步，找对方"上当"的分岔点（其实际应法比引擎最优差 150 分以上）
-   * 2) 在该点计算陷阱方"最优着"与"陷阱着后对方最优防御"的差值 = 不上当的代价
-   *    代价 <60 分 → 飞刀（稳）；>150 分 → 骗招（险）；其余 → 险招 */
+  /* 判定一局：算法唯一实现在 js/trapcls-core.js（离线 gen_trap_cls.js 共用，防副本漂移）。
+   * 这里只负责取数据 + 注入浏览器引擎（BACKGROUND 优先级，不与对弈/提示抢搜索）。 */
   async function classifyOne(meta) {
-    const data = await fetch(meta.file).then(r => r.json());
-    const line = [];
-    let nodes = data.moves || [];
-    while (nodes.length && line.length < 22) {
-      line.push(nodes[0]);
-      nodes = nodes[0].ch || [];
-    }
-    if (line.length < 4) return { cls: "未知", loss: null, trapPly: null };
-
-    function posAt(i) {
-      const { board, side } = X.parseFen(data.fen);
-      let s = side;
-      for (let j = 0; j < i; j++) {
-        X.applyMove(board, ...X.parseMove(line[j].m));
-        s = X.other(s);
-      }
-      return { board, side: s };
-    }
-
-    for (let j = 1; j + 1 < line.length && j <= 21; j++) {
-      // j = 对方着子序号（陷阱方可能是红也可能是黑，所以双方步都扫）
-      const p1 = posAt(j);
-      const fen1 = X.boardToFen(p1.board, p1.side);
-      let cands = await Engine.candidates(fen1, 300, 4, Engine.PRIORITY.BACKGROUND);
-      if (!cands.length) {
-        await new Promise(r => setTimeout(r, 300));
-        cands = await Engine.candidates(fen1, 600, 4, Engine.PRIORITY.BACKGROUND);   // 重试一次
-      }
-      if (!cands.length) break;
-      const actual = cands.find(c => c.mv === line[j].m);
-      let oppValue;
-      if (actual) {
-        oppValue = actual.cp;
-      } else {
-        const b2 = X.cloneBoard(p1.board);
-        X.applyMove(b2, ...X.parseMove(line[j].m));
-        const e = await Engine.evalCp(X.boardToFen(b2, X.other(p1.side)), 250, Engine.PRIORITY.BACKGROUND);
-        if (e === null) break;
-        oppValue = -e;   // 转回对方视角
-      }
-      const fall = cands[0].cp - oppValue;   // 对方因上当损失的分
-      if (fall < 150) continue;              // 不算上当，继续扫描
-
-      // 找到陷阱点：陷阱着 = line[j-1]（对方上一步是陷阱方的关键着）
-      const p0 = posAt(j - 1);
-      const cands0 = await Engine.candidates(X.boardToFen(p0.board, p0.side), 300, 4, Engine.PRIORITY.BACKGROUND);
-      if (!cands0.length) break;
-      // 对方最优防御后的局面（陷阱方走子，评分即陷阱方视角）
-      const b3 = X.cloneBoard(p1.board);
-      X.applyMove(b3, ...X.parseMove(cands[0].mv));
-      const decline = await Engine.evalCp(X.boardToFen(b3, X.other(p1.side)), 300, Engine.PRIORITY.BACKGROUND);
-      if (decline === null) break;
-      const loss = Math.max(0, cands0[0].cp - decline);
-      const cls = loss < 60 ? "飞刀" : loss > 150 ? "骗招" : "险招";
-      return { cls, loss: Math.round(loss), fall: Math.round(fall),
-               trapPly: j, declineMv: cands[0].mv, trapCn: line[j - 1].cn };
-    }
-    return { cls: "未知", loss: null, trapPly: null };
+    const data = await Data.getJSON(meta.file);
+    return TrapCls.classifyOne(data,
+      (fen, ms, mpv) => Engine.candidates(fen, ms, mpv, Engine.PRIORITY.BACKGROUND),
+      { ms: 300 });
   }
 
   function renderList() {
@@ -254,7 +197,7 @@
 
   async function openTrap(meta) {
     Sound.play("click");
-    const data = await fetch(meta.file).then(r => r.json());
+    const data = await Data.getJSON(meta.file);
     const line = [];
     let nodes = data.moves || [];
     while (nodes.length && line.length < 60) { line.push(nodes[0]); nodes = nodes[0].ch || []; }

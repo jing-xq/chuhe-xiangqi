@@ -9,7 +9,7 @@
   const KEY = "xq-annotated-v1";
   let data = [];
   try { data = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { data = []; }
-  function persist() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { Diag.storageFail("annotated.persist", e); } }
 
   /* 从本地分析数据兜底生成六维（LLM 未返回时也能出图） */
   function fallbackDims(game) {

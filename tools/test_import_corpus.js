@@ -32,6 +32,7 @@ vm.createContext(sandbox);
 function load(rel) {
   vm.runInContext(fs.readFileSync(path.join(ROOT, rel), "utf8"), sandbox, { filename: rel });
 }
+load("js/diag.js");
 load("js/rules.js");
 load("js/notation.js");
 sandbox.window.Sound = { play() {} };

@@ -23,17 +23,17 @@
 
   let els = {};
   let settings = { base: "https://api.deepseek.com", key: "", model: "deepseek-chat" };
-  try { Object.assign(settings, JSON.parse(localStorage.getItem(SET_KEY) || "{}")); } catch (e) {}
+  try { Object.assign(settings, JSON.parse(localStorage.getItem(SET_KEY) || "{}")); } catch (e) { Diag.warn("coach.loadSettings", e); }
   let profile = null;
-  try { profile = JSON.parse(localStorage.getItem(PROF_KEY) || "null"); } catch (e) {}
+  try { profile = JSON.parse(localStorage.getItem(PROF_KEY) || "null"); } catch (e) { Diag.warn("coach.loadProfile", e); }
   let customPrompt = localStorage.getItem(PROMPT_KEY) || "";
   let messages = [];        // 本轮对话历史 [{role, content}]
   let lastReview = null;    // 最近一次针对某盘棋的讲解 { game, content }，供"存入"使用
   let refBoard = null;      // 参照棋盘
   let refTimer = null;
 
-  function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) {} }
-  function saveProfile() { try { localStorage.setItem(PROF_KEY, JSON.stringify(profile)); } catch (e) {} }
+  function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) { Diag.storageFail("coach.saveSettings", e); } }
+  function saveProfile() { try { localStorage.setItem(PROF_KEY, JSON.stringify(profile)); } catch (e) { Diag.storageFail("coach.saveProfile", e); } }
 
   /* ---------- Markdown 渲染：共享 js/md.js ---------- */
 
@@ -144,7 +144,7 @@
           (Array.isArray(obj.habits) ? obj.habits.map((h, i) => (i + 1) + "." + h).join("\n") : null);
         if (text) return { text: String(text), ts: Date.now() };
       }
-    } catch (e) {}
+    } catch (e) { Diag.warn("coach.parseHabitText", e); }
     return null;
   }
 
@@ -502,12 +502,12 @@
     els.profileAuto.onclick = () => { els.settings.classList.add("hidden"); summarizeHabits(); };
     els.promptSave.onclick = () => {
       customPrompt = els.promptEdit.value;
-      try { localStorage.setItem(PROMPT_KEY, customPrompt); } catch (e) {}
+      try { localStorage.setItem(PROMPT_KEY, customPrompt); } catch (e) { Diag.storageFail("coach.savePrompt", e); }
       els.testResult.textContent = "提示词已保存。";
     };
     els.promptReset.onclick = () => {
       customPrompt = "";
-      try { localStorage.removeItem(PROMPT_KEY); } catch (e) {}
+      try { localStorage.removeItem(PROMPT_KEY); } catch (e) { Diag.warn("coach.clearPrompt", e); }
       els.promptEdit.value = "";
       els.testResult.textContent = "已恢复默认提示词。";
     };
@@ -612,7 +612,7 @@
     repeated: "一子多动", rookLate: "出车迟缓", positional: "局面判断"
   };
   let agg = null;
-  try { agg = JSON.parse(localStorage.getItem(AGG_KEY) || "null"); } catch (e) {}
+  try { agg = JSON.parse(localStorage.getItem(AGG_KEY) || "null"); } catch (e) { Diag.warn("coach.loadAgg", e); }
 
   function recordAgg(rep) {
     if (!agg) agg = { games: 0, cats: {}, scores: [], lossSum: 0, accSum: 0 };
@@ -622,7 +622,7 @@
     agg.scores.push(rep.score);
     if (agg.scores.length > 8) agg.scores.shift();
     Object.keys(rep.data.catCounts).forEach(c => { agg.cats[c] = (agg.cats[c] || 0) + 1; });
-    try { localStorage.setItem(AGG_KEY, JSON.stringify(agg)); } catch (e) {}
+    try { localStorage.setItem(AGG_KEY, JSON.stringify(agg)); } catch (e) { Diag.storageFail("coach.saveAgg", e); }
   }
 
   /* ---------- 本地引擎报告的增强：回合联动、练习直达、润色按钮 ---------- */
@@ -792,7 +792,7 @@
         enhanceLocalReport(repDiv, rep);
         // 点评的引擎数据回存棋谱：棋谱页的形势曲线/问题着与报告一致，不必重复分析
         if (g.id && rep.analysis && window.Games) {
-          try { Games.saveAnalysis(g.id, rep.analysis); } catch (e) {}
+          try { Games.saveAnalysis(g.id, rep.analysis); } catch (e) { Diag.warn("coach.saveAnalysis", e); }
         }
         profile = { text: rep.profileNote, ts: Date.now() };
         saveProfile();

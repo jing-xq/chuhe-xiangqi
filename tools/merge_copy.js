@@ -184,3 +184,11 @@ function mergeT5() {
 
 const MERGE = { t1: mergeT1, t2: mergeT2, t3: mergeT3, t4: mergeT4, t5: mergeT5, t6: mergeT6, t7: mergeT7 };
 MERGE[TASK]();
+
+/* 入库校验闸门：改了课程数据/索引的任务（t1/t4）合并后全量复验课树，
+ * 非法着法 / 空课 / 记谱损坏 → 整体失败退出（合并产物不得带伤上线）。 */
+if (TASK === "t1" || TASK === "t4") {
+  const r = require("child_process").spawnSync(process.execPath, [path.join(ROOT, "tools", "check_lessons.js")], { stdio: "inherit" });
+  if (r.status !== 0) { console.error("课树校验未通过，合并结果已中止使用"); process.exit(1); }
+  console.log("入库校验闸门通过");
+}

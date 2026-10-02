@@ -9,7 +9,7 @@
 
   const X = window.Xiangqi;
   const START_FEN = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-  const MATE = 99000;
+  const MATE = XqConst.MATE;
 
   /* 对手难度（与 play.js 同口径：名次概率 + 随机漏着注入 / 特大最优） */
   const LEVELS = [
@@ -162,7 +162,7 @@
   }
 
   /* ---------- 着法意图分析（纯函数，供所有文案复用） ---------- */
-  const VAL2 = { r: 600, c: 300, n: 300, b: 100, a: 100, p: 60, k: 0 };
+  const VAL2 = XqConst.VAL_SPAR;   // 统一出处见 js/constants.js（与 ENDGAME_MAT2 同口径）
   const NAME_OF = { K: "帅", k: "将", R: "车", r: "车", N: "马", n: "马", C: "炮", c: "炮", B: "相", b: "象", A: "仕", a: "士", P: "兵", p: "卒" };
   function pv(p) { return VAL2[p.toLowerCase()] || 0; }
 
@@ -193,7 +193,7 @@
       const p = b[r][f];
       if (!p || (p === p.toUpperCase()) !== (side === "r")) continue;
       if (p.toLowerCase() === "k" && Math.abs(f - tf) + Math.abs(r - tr) !== 1) continue;   // 白脸将不算吃
-      try { if (X.isLegal(b, side, [f, r, tf, tr])) return true; } catch (e) {}
+      try { if (X.isLegal(b, side, [f, r, tf, tr])) return true; } catch (e) { Diag.warn("spar.anyLegal", e); }
     }
     return false;
   }
@@ -224,7 +224,7 @@
       intent.gain = canBack ? pv(target) - pv(piece) : pv(target);
     }
     // 将军
-    try { if (X.isCheck(afterBoard(), opp)) intent.check = true; } catch (e) {}
+    try { if (X.isCheck(afterBoard(), opp)) intent.check = true; } catch (e) { Diag.warn("spar.checkProbe", e); }
     // 捉：走后新攻击对方无根大子（不含将帅，且不是吃子本身）
     if (!target && !intent.check) {
       const isOpp = (p) => (p === p.toUpperCase()) === (side === "b");
@@ -260,7 +260,7 @@
       else { intent.rescue = true; intent.rescueName = NAME_OF[resolved[0].p]; }
     }
     // 应将（走前自己被将军）
-    try { if (X.isCheck(board, side)) intent.answerCheck = true; } catch (e) {}
+    try { if (X.isCheck(board, side)) intent.answerCheck = true; } catch (e) { Diag.warn("spar.answerCheck", e); }
     // 主类型
     if (intent.check) intent.kind = "check";
     else if (intent.capture) intent.kind = intent.protectedTarget ? (intent.gain >= 0 ? "trade" : "sac") : "freeCapture";
@@ -340,7 +340,7 @@
   /* phaseOf2(board, ply)（T5）：开局/中局/残局。口径同 coachbrain.js——
    * 残局=双方非将子力总值低于阈值（ENDGAME_MAT 4600/9600 按比例换算到 VAL2 口径
    * 为 2970，开局约 6200）；此前 ply<20 为开局，其余中局。纯函数。 */
-  const ENDGAME_MAT2 = 2970;
+  const ENDGAME_MAT2 = XqConst.ENDGAME_MAT2;
   function phaseOf2(board, ply) {
     let mat = 0;
     for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
@@ -396,7 +396,7 @@
     try {
       if (X.isCheck(board, "r")) clauses.push("红方被将军");
       if (X.isCheck(board, "b")) clauses.push("黑方被将军");
-    } catch (e) {}
+    } catch (e) { Diag.warn("spar.snapCheck", e); }
     const changed = clauses.filter(c => prevClauses.indexOf(c) < 0);
     const myDev = side === "r" ? devR : devB;
     const myCenter = side === "r" ? centerR : centerB;
@@ -504,7 +504,7 @@
     if (!piece || board[mv[3]][mv[2]]) return null;       // 无子/吃子不算安静着
     const after = X.cloneBoard(board);
     X.applyMove(after, ...mv);
-    try { if (X.isCheck(after, X.other(side))) return null; } catch (e) {}   // 将军不算
+    try { if (X.isCheck(after, X.other(side))) return null; } catch (e) { Diag.warn("spar.giveCheckProbe", e); }   // 将军不算
     const opp = X.other(side);
     // 保子：走前我方受攻无根的大子，走后有了根（本手是去补根的那手）
     const rootless = b => {
@@ -548,9 +548,9 @@
     if (!bookPromise) {
       bookPromise = (async () => {
         try {
-          const idx = await fetch("data/openings/index.json").then(r => r.json());
+          const idx = await Data.getJSON("data/openings/index.json");
           const list = await Promise.all(idx.systems.map(meta =>
-            fetch(meta.file).then(r => r.json()).then(data => ({ meta, data })).catch(() => null)
+            Data.getJSON(meta.file).then(data => ({ meta, data })).catch(() => null)
           ));
           bookList = list.filter(Boolean);
         } catch (e) {
@@ -585,15 +585,13 @@
       arrow: null,          // 私教推荐指引箭头 {from:[f,r], to:[f,r]}
       lastRedCp: null,      // 最近一次引擎评分（红方视角）
       praises: 0,           // 鼓励次数上限 2
-      tipIdx: 0,
       worstMine: null,      // {cn, loss} 学员最损一手
       worstOpp: null,       // {cn, loss} 对手最损一手
       snapClauses: [],      // 上次局面快照已报过的特征（只报变化）
       recentSay: [],        // 最近说过的文案（容量8，先进先出，pickVariant 防重复）
       quietAt: -9,          // 上次安静着旁白的手数（T2：每 2 手至多 1 条）
       lastOppSwing: null,   // 上一手对手着法给学员的摆动（T4 归因用，coachAfterOppMove 更新）
-      sayLog: {},           // 本局已讲过的话题（T6：棋理/建议句，一局一次）
-      whyIdx: 0             // （T1 后不再轮换使用，保留字段兼容旧存档）
+      sayLog: {}            // 本局已讲过的话题（T6：棋理/建议句，一局一次）
     };
   }
 
@@ -716,7 +714,6 @@
     st.mySide = els.side.value;
     st.level = Number(els.level.value);
     st.status = "playing";
-    st.whyIdx = Math.floor(Math.random() * WHY_POOL.length);   // 兜底句式从随机槽位开始轮换
     els.chat.innerHTML = "";
     setLabel(labelText(), false);
     coachSay("好，这盘你执" + (st.mySide === "r" ? "红先行" : "黑后走") + "，对手是「" + LEVELS[st.level].name + "」。落子无悔，我在旁边看着你走。");
@@ -749,7 +746,7 @@
     const tk = ++st.token;
     try {
       await coachReviewStudentMove(r, node, preBoard, preSide, preRedCp, tk);
-    } catch (e) {}
+    } catch (e) { Diag.warn("spar.coachReviewStudentMove", e); }
     if (st.token !== tk) return;   // 视图已切换/令牌失效
     st.thinking = false; refresh();
     if (st.status !== "playing") return;
@@ -855,7 +852,7 @@
     if (good <= -80) {
       const b0 = cands[0] && cands[0].line && cands[0].line[0];
       let defensive = false;
-      if (b0) { try { defensive = isDefensive(st.board, st.side, b0); } catch (e) {} }
+      if (b0) { try { defensive = isDefensive(st.board, st.side, b0); } catch (e) { Diag.warn("spar.isDefensive", e); } }
       if (defensive) {
         const parts = pvToCn(st.board, st.side, cands[0].line, 3).split(" → ");
         const oppWhat = oppIntent ? intentPhrase(oppIntent, st.recentSay) : "藏着后续手段";
@@ -893,7 +890,7 @@
     try {
       const mv = X.parseMove(mvText);
       if (X.isLegal(board, side, mv)) return Notation.chinese(board, side, mv);
-    } catch (e) {}
+    } catch (e) { Diag.warn("spar.safeCn", e); }
     return mvText;
   }
 
@@ -1094,7 +1091,7 @@
       }
       if (st.token !== tk || st.status !== "playing") return;
       let oppIntent = null;
-      try { oppIntent = moveIntent(st.board, st.side, mvText); } catch (e) {}
+      try { oppIntent = moveIntent(st.board, st.side, mvText); } catch (e) { Diag.warn("spar.oppMoveIntent", e); }
       applyMove(X.parseMove(mvText));
       if (checkEnd()) return;
       // 谱分类 + 私教点评（引擎已空闲，可立即发起解析）
@@ -1156,7 +1153,7 @@
       if (st.token !== tk) return;
       const best = cands && cands[0];
       let mv = null;
-      try { if (best) mv = X.parseMove(best.mv); } catch (e) {}
+      try { if (best) mv = X.parseMove(best.mv); } catch (e) { Diag.warn("spar.parseBest", e); }
       if (!best || !mv || !X.isLegal(st.board, st.side, mv)) {
         coachSay("引擎这步还没算清，凭你的第一感觉走吧。");
         return;

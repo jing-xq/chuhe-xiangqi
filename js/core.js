@@ -23,7 +23,7 @@
     els = { body: container.querySelector("#core-body"), tabs: container.querySelectorAll(".core-tabs .tab"), badge: container.querySelector("#core-review-badge") };
     els.tabs.forEach(b => b.onclick = () => { setSub(b.dataset.t); });
     board = Board.create(document.createElement("canvas"));
-    fetch("data/core/route.json").then(r => r.json()).then(data => {
+    Data.getJSON("data/core/route.json").then(data => {
       route = data;
       if (!pendingJump) renderSub(); else doJump();
     }).catch(() => { els.body.innerHTML = "<div class='dim' style='padding:30px'>课程数据加载失败。</div>"; });

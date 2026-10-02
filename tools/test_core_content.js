@@ -28,6 +28,7 @@ sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 function load(rel) { vm.runInContext(fs.readFileSync(path.join(ROOT, rel), "utf8"), sandbox, { filename: rel }); }
 
+load("js/diag.js");
 load("js/rules.js");
 load("js/notation.js");
 load("js/learn.js");

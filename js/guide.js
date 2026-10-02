@@ -124,10 +124,10 @@
 
   let els = {}, board = null, idx = 0, tries = 0;
   let doneSet = {};
-  try { doneSet = JSON.parse(localStorage.getItem("xq-guide-done") || "{}"); } catch (e) {}
+  try { doneSet = JSON.parse(localStorage.getItem("xq-guide-done") || "{}"); } catch (e) { Diag.warn("guide.loadDone", e); }
 
   function saveDone() {
-    try { localStorage.setItem("xq-guide-done", JSON.stringify(doneSet)); } catch (e) {}
+    try { localStorage.setItem("xq-guide-done", JSON.stringify(doneSet)); } catch (e) { Diag.storageFail("guide.saveDone", e); }
   }
 
   function mount(container) {
@@ -282,7 +282,7 @@
       document.body.appendChild(mask);
     };
     if (termsCache) { open(termsCache); return; }
-    fetch("data/copy/terms.json").then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
+    Data.getJSON("data/copy/terms.json")
       .then(d => { termsCache = d; open(d); })
       .catch(() => {});
   }
