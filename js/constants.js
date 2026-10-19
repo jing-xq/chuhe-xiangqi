@@ -9,7 +9,7 @@
  *   ENDGAME_MAT2  spar 残局阈值 = ENDGAME_MAT 按 VAL_SPAR/VAL_COACH 比例折算（4600 × 约 0.645 ≈ 2970），
  *                 两表口径必须同步修改，否则残局判定漂移 */
 window.XqConst = {
-  APP_VERSION: "1.0.0",
+  APP_VERSION: "1.1.0",
   MATE: 99000,
   VAL_COACH: { k: 100000, r: 900, c: 450, n: 400, a: 200, b: 200, p: 100 },
   ENDGAME_MAT: 4600,

@@ -1,51 +1,18 @@
 /* 私教陪练视图：人机对弈 + 特大式实时讲解。
  * Spar.mount(container)  Spar.show() / Spar.hide()
- * 与 play.js 同一状态机范式（复制改写，play.js 不动）：
+ * 状态机核心（难度档/开局库/走子/终局/悔棋/重放）在 js/duel-core.js，与 play.js 共用；
+ * 本文件只保留视图层与私教讲解层：
  * 对手按八档难度应着；学员每手落地后私教解析——开局识别、对手应法点评、
  * 脱谱指正、中局损益点评、威胁提示；「💡 私教推荐」由学员主动按下才泄露正着（棋盘画指引箭头）。
- * 引擎单 worker 无队列：所有引擎调用串行（st.thinking 锁 + st.token 防僵尸回调）。 */
+ * 引擎请求经优先级队列串行（st.thinking 锁 + st.token 防僵尸回调）。 */
 (function () {
   "use strict";
 
   const X = window.Xiangqi;
-  const START_FEN = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+  const D = window.DuelCore;
+  const START_FEN = D.START_FEN;
+  const LEVELS = D.LEVELS;
   const MATE = XqConst.MATE;
-
-  /* 对手难度（与 play.js 同口径：名次概率 + 随机漏着注入 / 特大最优） */
-  const LEVELS = [
-    { name: "学前", time: 0,    pick: "randomLegal", desc: "刚学会规则的棋友水平，走子没有章法——适合人生第一盘" },
-    { name: "业1",  time: 250,  pv: 8, ranks: [12, 12, 12, 12, 12, 12, 12, 12], rand: 0.18, book: 0.5, desc: "知道规则，但经常丢子、漏看将军，一步大亏很常见" },
-    { name: "业3",  time: 300,  pv: 8, ranks: [38, 22, 14, 9, 6, 4, 3, 4],      rand: 0.07, book: 0.75, desc: "社区初级水平：大子看不住会送，偶尔走出随手棋" },
-    { name: "业5",  time: 450,  pv: 8, ranks: [52, 25, 11, 5, 3, 2, 1, 1],      rand: 0.025, book: 0.9, desc: "业余中坚：开局熟练，中局偶有方向性错误，偶尔丢子" },
-    { name: "业7",  time: 600,  pv: 6, ranks: [68, 20, 8, 2, 1, 1],             rand: 0.01, desc: "业余高手：攻防有章法，抓机会能力很强" },
-    { name: "业9",  time: 800,  pv: 5, ranks: [82, 12, 4, 1, 1],                rand: 0, desc: "准专业水平：计算精准，盘面破绽很少" },
-    { name: "大师", time: 1200, pv: 4, ranks: [94, 5, 1, 0],                    rand: 0, desc: "职业大师：几乎不走坏棋，先求稳再求胜" },
-    { name: "特大", time: 1800, pick: "best", desc: "特级大师全力模式，象棋的天花板" }
-  ];
-
-  /* 对手开局库（坐标着法，运行时校验合法性）——让低难度对手的开局有真人味道 */
-  const BOOK = {
-    "": ["h2e2", "c3c4", "g0e2", "b0c2"],
-    "h2e2": ["h9g7", "b9c7", "h7e7", "g6g5"],
-    "h2e2 h9g7": ["b0c2", "h0g2"],
-    "h2e2 h9g7 b0c2": ["g6g5", "b9c7"],
-    "h2e2 h9g7 b0c2 g6g5": ["a0b0", "c3c4"],
-    "h2e2 h9g7 b0c2 g6g5 a0b0": ["b9c7", "c9e7"],
-    "h2e2 h9g7 b0c2 g6g5 a0b0 b9c7": ["c3c4", "h0g2"],
-    "h2e2 h9g7 b0c2 g6g5 c3c4": ["b9c7", "g9e7"],
-    "h2e2 b9c7": ["b0c2", "h0g2"],
-    "h2e2 b9c7 b0c2": ["g6g5", "c6c5"],
-    "h2e2 h7e7": ["b0c2", "h0g2"],
-    "h2e2 h7e7 b0c2": ["h9g7", "b9c7"],
-    "h2e2 g6g5": ["b0c2", "h0g2"],
-    "c3c4": ["h7e7", "g6g5", "h9g7"],
-    "c3c4 h7e7": ["b0c2", "h0g2"],
-    "c3c4 g6g5": ["b0c2", "g0e2"],
-    "g0e2": ["h9g7", "b9c7", "c6c5"],
-    "g0e2 h9g7": ["b0c2", "h0g2"],
-    "b0c2": ["g6g5", "h9g7"],
-    "b0c2 g6g5": ["h0g2", "g0e2"]
-  };
 
   /* 棋理口诀库（脱谱/大亏时点拨一句，先扬后抑、口诀体） */
   const TIPS = [
@@ -225,7 +192,9 @@
     }
     // 将军
     try { if (X.isCheck(afterBoard(), opp)) intent.check = true; } catch (e) { Diag.warn("spar.checkProbe", e); }
-    // 捉：走后新攻击对方无根大子（不含将帅，且不是吃子本身）
+    // 捉：走后新攻击对方无根大子（不含将帅，且不是吃子本身）。
+    // 主语校验（P0-1）：新无根子必须是这手棋移动的子直接捉的（从落点能吃到它）——
+    // 否则是"挡线抽将/落位暴露"之类的间接效果，不算这手棋的"捉"
     if (!target && !intent.check) {
       const isOpp = (p) => (p === p.toUpperCase()) === (side === "b");
       const hanging = (b, bySide) => {
@@ -240,10 +209,16 @@
       const before = hanging(board, side), after = hanging(afterBoard(), side);
       for (const a of after) {
         if (before.some(b2 => b2.f === a.f && b2.r === a.r)) continue;
+        let byMover = false;
+        try { byMover = X.isLegal(afterBoard(), side, [mv[2], mv[3], a.f, a.r]); } catch (e) { byMover = false; }
+        if (!byMover) continue;
         if (!intent.attack || a.v > intent.attack.value) intent.attack = { name: NAME_OF[a.p], value: a.v };
       }
     }
-    // 逃 / 保：走前被攻击且无根的大子，走后解套（移动本身是那个子=逃，否则=保）
+    // 逃 / 保（P0-1 按子追踪，不再按格子集合差）：
+    // escape 要求走前受攻无根的正是这颗子、且走后它的新位置脱险——
+    // 从虎口跳进另一个虎口不算逃掉（旧实现按格子差会误判）；
+    // rescue 只算"别的子"因这手脱险（补根/吃掉攻击者/挡线），移动子自己换格不算
     const hangsOf = (b) => {
       const out = [];
       for (let r = 0; r < 10; r++) for (let f = 0; f < 9; f++) {
@@ -254,11 +229,11 @@
       return out;
     };
     const hb = hangsOf(board), ha = hangsOf(afterBoard());
-    const resolved = hb.filter(h => !ha.some(x => x.f === h.f && x.r === h.r));
-    if (resolved.length) {
-      if (resolved.some(h => h.f === mv[0] && h.r === mv[1])) intent.escape = true;
-      else { intent.rescue = true; intent.rescueName = NAME_OF[resolved[0].p]; }
-    }
+    const moverWasHanging = hb.some(h => h.f === mv[0] && h.r === mv[1]);
+    const moverSafe = !ha.some(h => h.f === mv[2] && h.r === mv[3]);
+    if (moverWasHanging && moverSafe) intent.escape = true;
+    const others = hb.filter(h => !(h.f === mv[0] && h.r === mv[1]) && !ha.some(x => x.f === h.f && x.r === h.r));
+    if (others.length) { intent.rescue = true; intent.rescueName = NAME_OF[others[0].p]; }
     // 应将（走前自己被将军）
     try { if (X.isCheck(board, side)) intent.answerCheck = true; } catch (e) { Diag.warn("spar.answerCheck", e); }
     // 主类型
@@ -516,7 +491,12 @@
       }
       return out;
     };
-    const mended = rootless(board).filter(h => !rootless(after).some(x => x.f === h.f && x.r === h.r));
+    // 保子：走前我方受攻无根的大子，走后有了根（本手是去补根的那手）。
+    // P0-1：排除移动子自己的原格——它换到另一个受攻格时原格虽离开集合，但不是"补根"
+    const rootlessAfter = rootless(after);
+    const mended = rootless(board).filter(h =>
+      !(h.f === mv[0] && h.r === mv[1]) &&
+      !rootlessAfter.some(x => x.f === h.f && x.r === h.r));
     if (mended.length) return { kind: "defend", name: NAME_OF[mended[0].p] };
     // 新攻击线：走后才攻击到的敌子（判断每个敌格走前/走后是否被攻击）
     const news = [];
@@ -567,11 +547,7 @@
   let st = null;
 
   function newState() {
-    const { board: b, side } = X.parseFen(START_FEN);
-    return {
-      board: b, side,
-      moves: [],            // [{m, cn, side, chk}]
-      rep: [{ key: X.boardToFen(b, side), check: false, side: null }],
+    return Object.assign(D.newGame(), {
       mySide: "r",
       level: 2,             // 默认业3
       status: "idle",       // idle | playing | finished
@@ -592,7 +568,7 @@
       quietAt: -9,          // 上次安静着旁白的手数（T2：每 2 手至多 1 条）
       lastOppSwing: null,   // 上一手对手着法给学员的摆动（T4 归因用，coachAfterOppMove 更新）
       sayLog: {}            // 本局已讲过的话题（T6：棋理/建议句，一局一次）
-    };
+    });
   }
 
   function mount(container) {
@@ -603,7 +579,7 @@
           <option value="b">黑（后手）</option>
         </select></label>
         <label>对手 <select id="sp-level">
-          ${LEVELS.map((l, i) => `<option value="${i}" ${i === 2 ? "selected" : ""}>${l.name}</option>`).join("")}
+          ${LEVELS.map((l, i) => `<option value="${i}" ${i === 2 ? "selected" : ""}>${l.name}${l.elo ? `（≈${l.elo}）` : ""}</option>`).join("")}
         </select></label>
         <button id="sp-start" class="primary">开始对练</button>
         <button id="sp-reco" title="主动请求私教指路（棋盘会画出指引线）">💡 私教推荐</button>
@@ -1000,38 +976,22 @@
   }
 
   function applyMove(mv) {
-    const cn = Notation.chinese(st.board, st.side, mv);
-    const mover = st.side;
-    const captured = X.applyMove(st.board, ...mv);
-    const gaveCheck = X.isCheck(st.board, X.other(st.side));
-    const mate = X.isCheckmate(st.board, X.other(st.side));
-    st.moves.push({ m: X.moveToText(mv), cn, side: mover, chk: gaveCheck });
-    if (mate) Sound.play("check");
-    else if (gaveCheck) Sound.play("check");
-    else if (captured) Sound.play("capture");
+    const node = D.applyMove(st, mv);
+    if (node.mate || node.gaveCheck || node.chk) Sound.play("check");
+    else if (node.captured) Sound.play("capture");
     else Sound.play("move");
-    st.side = X.other(st.side);
-    st.rep.push({ key: X.boardToFen(st.board, st.side), check: gaveCheck, side: mover });
-    st.browsing = null;
     st.arrow = null;   // 指引箭头只保持到学员走子
   }
 
   function checkEnd() {
-    const rep = X.repetitionResult(st.rep);
-    if (rep) {
-      if (rep.result === "draw") finish("draw", "三次重复局面，不变作和");
-      else finish(rep.side === st.mySide ? "loss" : "win", (rep.side === "r" ? "红方" : "黑方") + "长将判负");
+    const e = D.endOf(st);
+    if (e) {
+      const result = e.winner === "draw" ? "draw" : e.winner === st.mySide ? "win" : "loss";
+      finish(result, e.reason);
       return true;
     }
-    const legal = X.legalMoves(st.board, st.side);
-    if (legal.length > 0) { refresh(); return false; }
-    const loser = st.side;
-    if (X.isCheck(st.board, st.side)) {
-      finish(loser === st.mySide ? "loss" : "win", loser === "r" ? "红方被将死" : "黑方被将死");
-    } else {
-      finish(loser === st.mySide ? "loss" : "win", "困毙（无子可动）判负");
-    }
-    return true;
+    refresh();
+    return false;
   }
 
   function finish(result, reason) {
@@ -1076,17 +1036,17 @@
     const tk = ++st.token;
     try {
       const lvl = LEVELS[st.level];
+      const legal = D.legalTexts(st);
       let mvText = null;
       if (lvl.pick === "randomLegal") {
-        const legal = X.legalMoves(st.board, st.side);
-        mvText = X.moveToText(legal[Math.floor(Math.random() * legal.length)]);
+        mvText = legal[Math.floor(Math.random() * legal.length)];
         await new Promise(r => setTimeout(r, 350));
       } else {
-        mvText = bookMove(lvl);
+        mvText = D.bookMove(lvl, st.moves.map(m => m.m).join(" "), legal);
         if (!mvText) {
           const cands = await Engine.candidates(X.boardToFen(st.board, st.side), lvl.time, lvl.pv || 4, Engine.PRIORITY.PLAY);
           if (!cands.length) throw new Error("no candidates");
-          mvText = pickMove(cands, lvl);
+          mvText = D.pickMove(cands, lvl, legal);
         }
       }
       if (st.token !== tk || st.status !== "playing") return;
@@ -1110,30 +1070,17 @@
     st.thinking = false; refresh();
   }
 
-  function bookMove(lvl) {
-    if (!lvl.book || Math.random() > lvl.book) return null;
-    const list = BOOK[st.moves.map(m => m.m).join(" ")];
-    if (!list) return null;
-    const legal = X.legalMoves(st.board, st.side).map(mv => X.moveToText(mv));
-    const ok = list.filter(mv => legal.indexOf(mv) >= 0);
-    return ok.length ? ok[Math.floor(Math.random() * ok.length)] : null;
-  }
-
-  function pickMove(cands, lvl) {
-    if (lvl.pick === "best") return cands[0].mv;
-    if (lvl.rand && st && st.board && Math.random() < lvl.rand) {
-      const legal = X.legalMoves(st.board, st.side);
-      return X.moveToText(legal[Math.floor(Math.random() * legal.length)]);
-    }
-    const n = Math.min(cands.length, lvl.ranks.length);
-    let sum = 0;
-    for (let i = 0; i < n; i++) sum += lvl.ranks[i];
-    let r = Math.random() * sum;
-    for (let i = 0; i < n; i++) {
-      r -= lvl.ranks[i];
-      if (r <= 0) return cands[i].mv;
-    }
-    return cands[0].mv;
+  /* ---------- 悔棋 / 重放 ---------- */
+  function undo() {
+    if (!st || st.status !== "playing" || st.thinking || !st.moves.length) return;
+    D.undoPlies(st, st.moves[st.moves.length - 1].side !== st.mySide ? 2 : 1);
+    st.arrow = null;
+    // 谱匹配状态按重放后的序列重算
+    const r = replayBook(bookList || [], st.moves.map(m => m.m), st.mySide);
+    st.book = r.book; st.offBook = r.offBook;
+    setLabel(labelText(), false);
+    coachSay("悔棋至第 " + st.moves.length + " 手，前面的讲解不算数——我们按新的变化重来。");
+    refresh();
   }
 
   /* ---------- 💡 私教推荐（学员主动按下才泄露，未点击不发请求） ---------- */
@@ -1169,35 +1116,6 @@
     }
   }
 
-  /* ---------- 悔棋 / 重放 ---------- */
-  function undo() {
-    if (!st || st.status !== "playing" || st.thinking || !st.moves.length) return;
-    let pop = (st.moves[st.moves.length - 1].side !== st.mySide) ? 2 : 1;
-    while (pop-- > 0 && st.moves.length) st.moves.pop();
-    replayFromMoves();
-    // 谱匹配状态按重放后的序列重算
-    const r = replayBook(bookList || [], st.moves.map(m => m.m), st.mySide);
-    st.book = r.book; st.offBook = r.offBook;
-    st.browsing = null;
-    setLabel(labelText(), false);
-    coachSay("悔棋至第 " + st.moves.length + " 手，前面的讲解不算数——我们按新的变化重来。");
-    refresh();
-  }
-
-  function replayFromMoves() {
-    const { board: b, side } = X.parseFen(START_FEN);
-    st.board = b;
-    st.side = side;
-    st.arrow = null;
-    st.rep = [{ key: X.boardToFen(b, side), check: false, side: null }];
-    for (const node of st.moves) {
-      const mover = st.side;
-      X.applyMove(st.board, ...X.parseMove(node.m));
-      st.side = X.other(st.side);
-      st.rep.push({ key: X.boardToFen(st.board, st.side), check: !!node.chk, side: mover });
-    }
-  }
-
   /* ---------- 形势条 / 顶部评分 ---------- */
   function updateEvalUI(redCp) {
     const mine = st.mySide === "r" ? redCp : -redCp;
@@ -1210,7 +1128,7 @@
 
   function refresh() {
     if (!board) return;
-    const view = boardStateForView();
+    const view = D.boardAt(st, st.browsing);
     board.update({
       board: view.board, turn: view.side,
       lastMove: view.lastMove,
@@ -1227,22 +1145,6 @@
         ? "电脑先行。"
         : "轮到你走棋。";
     }
-  }
-
-  function boardStateForView() {
-    if (st.browsing === null) {
-      const last = st.moves.length ? X.parseMove(st.moves[st.moves.length - 1].m) : null;
-      return { board: st.board, side: st.side, lastMove: last };
-    }
-    const { board: b, side } = X.parseFen(START_FEN);
-    let s = side;
-    let last = null;
-    for (let i = 0; i < st.browsing; i++) {
-      last = X.parseMove(st.moves[i].m);
-      X.applyMove(b, ...last);
-      s = X.other(s);
-    }
-    return { board: b, side: s, lastMove: last };
   }
 
   function renderMoves() {

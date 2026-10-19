@@ -163,6 +163,7 @@ console.log("④ 实时走势纯函数");
 }
 
 console.log("⑤ 私教陪练纯函数：谱序列 walk / 分差→局势描述 / 脱谱文案组装");
+load("js/duel-core.js");
 load("js/spar.js");
 {
   const SP = sandbox.window.SparDebug;
@@ -517,6 +518,49 @@ console.log("⑫ 讲解层：cooldown");
     check("首次快照含建议句", s1.text.indexOf("炮镇中路") >= 0, s1.text);
     const s2 = SP.positionSnapshot(b0, "r", 0, [], 0, undefined, sayLog);
     check("同局再快照 → 建议句被冷却省略", s2.text.indexOf("炮镇中路") < 0, s2.text);
+  }
+}
+
+// ---- ⑬ P0-1 语义修正：逃子/捉子按「子」追踪而非按格子集合差 ----
+console.log("⑬ moveIntent 语义：逃子按子追踪 / 捉子主语校验（旧实现误判锁定）");
+{
+  const SP = sandbox.window.SparDebug;
+  const parse = fen => X.parseFen(fen).board;
+  // 1) 真逃子：红车 a0 被黑车 a6 无根捉，a0b0 脱险 → escape
+  {
+    const b = parse("4k4/9/9/r8/9/9/9/9/9/R2K5 w");
+    const it = SP.moveIntent(b, "r", "a0b0");
+    check("受攻车走安全格 → escape", it.kind === "escape" && it.escape === true, JSON.stringify(it.kind));
+  }
+  // 2) 虎口跳虎口（报告 P0-1 实测案例）：a0 被捉，b0 被黑马 a2 捉——
+  //    旧实现按格子差把 a0 离开受攻集误判 escape，实际它跳进了另一个虎口
+  {
+    const b = parse("4k4/9/9/r8/9/9/9/n8/9/R2K5 w");
+    const it = SP.moveIntent(b, "r", "a0b0");
+    check("从虎口跳进虎口 → 不是 escape 也不是 rescue",
+      it.escape !== true && it.rescue !== true && it.kind === "develop", JSON.stringify(it));
+    check("该局面下 quietIntent 也不误判 defend（补根）", SP.quietIntent(b, "r", "a0b0").kind === "form",
+      JSON.stringify(SP.quietIntent(b, "r", "a0b0")));
+  }
+  // 3) 捉子主语校验：红炮 e7h7 挡住黑车 h9 对黑马 h5 的保护线——
+  //    马 h5 变无根是红车 h0 捉的（旧实现判 attack），不是移动的炮捉的 → 不算这手棋的捉
+  {
+    const b = parse("4k2r1/9/4C4/7n1/9/9/9/9/9/3K2R2 w");
+    const it = SP.moveIntent(b, "r", "e7h7");
+    check("挡线暴露的无根子非移动子所捉 → 不判 attack",
+      !it.attack && it.kind === "move", JSON.stringify(it));
+  }
+  // 4) 真捉子（主语是移动子）：车 a0a5 新捉无根炮 → attack（既有行为回归）
+  {
+    const b = parse("4k4/9/9/9/4c4/9/9/9/9/R7K w");
+    const it = SP.moveIntent(b, "r", "a0a5");
+    check("移动子直接新捉无根炮 → attack", it.kind === "attack" && it.attack && it.attack.name === "炮", JSON.stringify(it));
+  }
+  // 5) 真保子：车 a0b0 给受攻炮补根 → rescue（既有行为回归）
+  {
+    const b = parse("4k4/9/9/9/9/2n6/9/1C7/9/R7K w");
+    const it = SP.moveIntent(b, "r", "a0b0");
+    check("给别的受攻子补根 → rescue", it.kind === "rescue" && it.rescueName === "炮", JSON.stringify(it));
   }
 }
 

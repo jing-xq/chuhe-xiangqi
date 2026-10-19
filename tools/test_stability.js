@@ -54,6 +54,7 @@ load("js/rules.js");
 load("js/notation.js");
 load("js/constants.js");
 load("js/trapcls-core.js");
+load("js/duel-core.js");
 load("js/engine.js");
 sandbox.window.Sound = { play() {} };   // quiz/guide 依赖
 load("js/quiz.js");
@@ -399,6 +400,51 @@ const INIT = X.INIT_FEN;
     const r5 = await TrapCls.classifyOne(data, (fen, ms, mpv) =>
       Promise.resolve(mpv === 4 ? [{ mv: "e3e4", cp: 0 }, { mv: "h9g9", cp: -200 }] : [{ mv: "h9g9", cp: 0 }]), { wait: wait0 });
     check("loss=0 → 飞刀", r5.cls === "飞刀" && r5.loss === 0, JSON.stringify(r5));
+  }
+
+  // ---- 用例 12：引擎长搜切片（P1-3）：长 PLAY 拆 600ms 片，片间让位前台请求 ----
+  console.log("⑪ 长搜切片：PLAY 1800ms 拆片 + USER 插队最多等一片");
+  {
+    Engine._test.reset();
+    Engine._test.setReady(true);
+    const calls = [];   // 每次 rawSearch 的 {mt, pv}
+    Engine._test.setRawSearch((fen, mt, pv) => new Promise(res => {
+      calls.push({ mt, pv });
+      setTimeout(() => res({ best: "h2e2", cands: [{ mv: "h2e2", cp: 5, line: ["h2e2"] }], via: "stub" }), 25);
+    }));
+    // 场景 A：PLAY 1800ms 在搜，5ms 后 USER 100ms 排队 → PLAY 走完第 1 片就让位
+    const t0 = Date.now();
+    const playA = Engine._test.submit("fenA", 1800, 4, Engine.PRIORITY.PLAY);
+    await sleep(5);
+    const userA = Engine._test.submit("fenB", 100, 1, Engine.PRIORITY.USER);
+    const [rPlay, rUser] = await Promise.all([playA, userA]);
+    check("让位场景：两任务都拿到结果", rPlay.best === "h2e2" && rUser.best === "h2e2");
+    check("PLAY 让位后 USER 无需等满三片（<150ms 完成）", Date.now() - t0 < 150, (Date.now() - t0) + "ms");
+    const aPlay = calls.slice(0, calls.findIndex(c => c.mt === 100));
+    check("PLAY 被切成 600ms 片且提前让位（片数 1~2，非整 3 片）",
+      aPlay.length >= 1 && aPlay.length <= 2 && aPlay.every(c => c.mt === 600),
+      JSON.stringify(calls.map(c => c.mt)));
+    check("USER 在让位后立即执行（下一笔即 100ms 任务）", calls[aPlay.length] && calls[aPlay.length].mt === 100,
+      JSON.stringify(calls.map(c => c.mt)));
+    // 场景 B：无更高优先级排队时，长搜走满全部片
+    calls.length = 0;
+    const playB = Engine._test.submit("fenC", 1800, 4, Engine.PRIORITY.PLAY);
+    await playB;
+    check("无人插队 → 走满 3 片 600ms", calls.length === 3 && calls.every(c => c.mt === 600),
+      JSON.stringify(calls.map(c => c.mt)));
+    // 场景 C：短任务不切片（行为与切片前一致）
+    calls.length = 0;
+    await Engine._test.submit("fenD", 400, 1, Engine.PRIORITY.USER);
+    check("≤900ms 短任务单次搜索不切片", calls.length === 1 && calls[0].mt === 400, JSON.stringify(calls));
+    // 场景 D：BACKGROUND 排队不触发让位（PLAY 仍走满片）
+    calls.length = 0;
+    const playD = Engine._test.submit("fenE", 1200, 4, Engine.PRIORITY.PLAY);
+    await sleep(5);
+    Engine._test.submit("fenF", 300, 1, Engine.PRIORITY.BACKGROUND);
+    await playD;
+    check("仅 BACKGROUND 在等 → PLAY 不让位走满 2 片",
+      calls.filter(c => c.mt === 600).length === 2, JSON.stringify(calls.map(c => c.mt)));
+    Engine._test.reset();
   }
 
   // ---- 存量正式测试与数据校验另行运行：node tools/test_opening_logic.js / python -B tools/build_openings.py --check ----

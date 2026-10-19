@@ -189,7 +189,8 @@
    *   AMBIENT     40  形势条等低优先刷新
    *   BACKGROUND  20  后台批处理（飞刀分类等），可暂停
    * setBackgroundPaused(true) 时 BACKGROUND 任务暂不执行，恢复后继续；
-   * 已在搜索中的任务不受影响（movetime 有界，前台最多等一个搜索）。
+   * 已在搜索中的任务不受影响——但长搜（>900ms）会拆成 600ms 片，
+   * 片间让位给排队的 ≥USER 优先级请求（见下方长搜切片），前台最多等一片。
    * 取消/超时/不可用分别以 via:"cancelled"/"timeout"/"not-ready" 明确返回。 */
   const PRIORITY = { PLAY: 100, USER: 80, REVIEW: 60, AMBIENT: 40, BACKGROUND: 20 };
   let queue = [];           // 待执行任务
@@ -205,11 +206,35 @@
     if (idx < 0) return;
     const task = queue.splice(idx, 1)[0];
     running = true;
-    rawSearch(task.fen, task.movetime, task.pv).then(r => {
+    runTask(task).then(r => {
       running = false;
       task.resolve(r);
       pump();
     });
+  }
+
+  /* ---------- 长搜切片（P1-3） ----------
+   * 单 WASM worker 串行：此前特大档 PLAY 一次 go movetime 1800ms，期间用户按
+   * 「提示」（USER 80）要等它跑完。现在长任务（>900ms）拆成 600ms 片连续搜——
+   * 引擎哈希表跨 go 保留，深度逐片累积，末片结果即最深结果；每片之间检查队列，
+   * 有 ≥USER 优先级的任务在等就让位：提前采纳当前最优，让前台请求最多等一片。
+   * ≤900ms 的任务照旧单次搜索，短任务行为与切片前完全一致。 */
+  const SLICE_MS = 600;
+  const SLICE_THRESHOLD = 900;
+
+  function runTask(task) {
+    if (task.movetime <= SLICE_THRESHOLD) return rawSearch(task.fen, task.movetime, task.pv);
+    return (async () => {
+      let remaining = task.movetime, r = null;
+      while (remaining > 0) {
+        const slice = Math.min(SLICE_MS, remaining);
+        r = await rawSearch(task.fen, slice, task.pv);
+        remaining -= slice;
+        if (remaining <= 0) break;
+        if (queue.some(t => t.priority >= PRIORITY.USER)) break;   // 让位：有前台请求在等
+      }
+      return r;
+    })();
   }
 
   function submit(fen, movetime, pv, priority) {

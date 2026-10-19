@@ -16,6 +16,9 @@ if errorlevel 1 set FAIL=1
 node tools/test_import_corpus.js
 if errorlevel 1 set FAIL=1
 
+node tools/test_play_flow.js
+if errorlevel 1 set FAIL=1
+
 node tools/check_lessons.js
 if errorlevel 1 set FAIL=1
 

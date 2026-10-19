@@ -22,7 +22,7 @@
 - 对局存档：`winner`（"r"|"b"|"draw"，红黑视角获胜方）+ `mySide`（用户执方）+ `reason`；用户视角胜负一律经 `Games.userResult(rec)` 推导，`result`（"win"|"loss"|"draw"）仅作兼容保留（用户视角）。
 - 旧存档迁移：`imported:true` 的旧 `result` 是红方视角（win=红胜），对弈/陪练旧 `result` 是用户视角；`Games.normWinner` 按来源推导，不得无条件翻转。
 - 行棋方与评分视角：棋谱 moves 只存 `{m,cn}`，行棋方必须用 `Xiangqi.sideAtPly(startSide, ply)` 按 FEN 推导；走子方分↔红方分转换统一走 `Xiangqi.cpToRed`。
-- 引擎调度：所有搜索请求经 `Engine` 内部优先级队列串行（PLAY=100 对局应着 / USER=80 用户提示判分 / REVIEW=60 复盘 / AMBIENT=40 形势条 / BACKGROUND=20 后台批处理），`Engine.setBackgroundPaused(true)` 可暂停后台批处理（Traps.hide 时调用）。新增引擎调用须带优先级。
+- 引擎调度：所有搜索请求经 `Engine` 内部优先级队列串行（PLAY=100 对局应着 / USER=80 用户提示判分 / REVIEW=60 复盘 / AMBIENT=40 形势条 / BACKGROUND=20 后台批处理），`Engine.setBackgroundPaused(true)` 可暂停后台批处理（Traps.hide 时调用）。新增引擎调用须带优先级。长搜（>900ms）自动拆 600ms 片，片间让位给排队的 ≥USER 优先级请求（前台最多等一片，引擎哈希跨片保深度）。
 
 ## 代码组织（js/，全局脚本按依赖顺序在 index.html 中引入）
 
@@ -33,6 +33,7 @@
 | `diag.js` | `Diag` | 诊断层：各模块静默 catch 的异常记入环形缓冲（最多 50 条），`storageFail` 节流弹全局横幅；展示在「我的 → 备份与设置」诊断折叠块。新的 best-effort try/catch 应记 `Diag.warn("模块.位置", e)`，不要再留空 catch |
 | `constants.js` | `XqConst` | 全局常量唯一出处：`APP_VERSION`（顶栏显示，变更记 CHANGELOG.md）、`MATE`、两套子力价值口径（`VAL_COACH` 拆解 / `VAL_SPAR` 陪练口述，与各自残局阈值必须同步改） |
 | `trapcls-core.js` | `TrapCls` | 飞刀/骗招分类纯函数（注入 searchFn）：`js/traps.js` 运行时与 `tools/gen_trap_cls.js` 离线共用同一实现，禁止再复制算法 |
+| `duel-core.js` | `DuelCore` | 对弈状态机核心（play/spar 共用，标定工具同源）：LEVELS 八档难度（唯一出处，elo 为引擎自弈标定估计）/ BOOK 开局库 / 走子 / 终局（重复局面·将死·困毙）/ 悔棋重放 / 按档选着策略。纯状态机，无 DOM 无引擎 |
 | `datacache.js` | `Data` | 静态数据文件内存缓存：同一 URL 会话内只 fetch/解析一次；`Data.bust()` 在导入备份/开发调试时失效。只用于 data/ 静态文件，API 请求与引擎二进制不走它 |
 | `md.js` | — | Markdown 渲染 |
 | `sound.js` | — | 音效（`assets/sound/*.wav`） |
@@ -43,8 +44,8 @@
 | `annotated.js` | `Annotated` | 已讲解棋谱存档（取名/评分/六维雷达图） |
 | `coachbrain.js` | `CoachBrain` | 本地私教大脑（引擎拆解 + 棋理知识库，零 token） |
 | `games.js` | `Games` | 棋谱库 + 复盘分析（逐着评分/形势曲线/问题着） |
-| `play.js` | `Play` | 人机对弈（八档职业分段：MultiPV 候选按名次概率选着 + 随机漏着注入控制失误率，未经真人棋力标定） |
-| `spar.js` | `Spar` | 私教陪练（引擎对手 + 本地特大实时口述） |
+| `play.js` | `Play` | 人机对弈（状态机核心在 duel-core.js；本文件只保留视图层：执红黑/悔棋/认输/求和/形势条/存谱） |
+| `spar.js` | `Spar` | 私教陪练（状态机核心在 duel-core.js；本文件为视图层 + 讲解层：开局识别/脱谱算账/威胁提示/失误归因/意图旁白，纯函数经 SparDebug 导出供测试） |
 | `guide.js` | `Guide` | 新手入门交互课（12 节） |
 | `traps.js` | `Traps` | 飞刀骗招（引擎自动分类：飞刀 vs 骗招） |
 | `opening.js` | `Opening` | 开局训练（跟谱/背谱/掌握度模型，状态机 in_book → punish → free → debrief） |
@@ -71,6 +72,8 @@
 - `xiangqi.py`：Python 版规则引擎（与 js/rules.js 坐标约定一致，供工具脚本使用）。
 - `gen_openings.js`（Node + fairy-stockfish）：开局谱引擎生成器。分工原则：着法全部来自引擎（种子骨架验伤 → MultiPV 首选为主线、次选为变着），讲解文字可人工/LLM 润色但不得改着法。**一致性原则：同一节点的谱着与脱谱着必须出自同一次 MultiPV 搜索**（两次评估抖动会把谱着误判为脱谱）。
 - `probe_dev.js`：脱谱教学着增量挖掘探针（只输出报告，不写 data/openings）。
+- `engdrv.js`：Node 直驱 fairy-stockfish 公共封装（initEngine/search，合法性过滤）；gen_trap_cls / calibrate_levels 共用，不要再复制驱动。
+- `calibrate_levels.js`（P0-2）：八档难度引擎自弈标定——相邻档对打 + 0v7 书挡，与 duel-core 同源选着策略，logistic 链推 Elo（特大锚 2200 相对刻度），报告 `tools/_work/calib_report.json`；结果人工回填 `duel-core.js` LEVELS 的 elo 字段。重跑：`node tools/calibrate_levels.js --games 12`（更稳）。
 - `build_route.js`（Node）：新手路线生成器，与 `build_openings` 同则：着法/局面由引擎校验，讲解文字可改、着法不可改。
 - `build_openings.py`：谱库校验 + 补全 cn/重建 `index.json`；`--check` 只校验不写文件（CI 式快速检查）。
 - `apply_comments.py`：评注合并。
@@ -78,10 +81,11 @@
 
 ## 测试
 
-- **一键全量回归**：`tools/run_all_tests.bat`（GBK 编码，双击或在 cmd 跑）= 下面 5 套无头测试 + 谱库校验；日常改动至少跑它一遍。
+- **一键全量回归**：`tools/run_all_tests.bat`（GBK 编码，双击或在 cmd 跑）= 下面 6 套无头测试 + 谱库校验；日常改动至少跑它一遍。
 - **正式测试**：
-  - `node tools/test_opening_logic.js` —— `js/opening.js` 的无头逻辑自测（Node 桩环境模拟浏览器），校验用户节点统计、掌握度公式（50·coverage + 30·punishRate + 20·min(games/5,1)，覆盖率分母为 offeredIds）与谱更新修剪。改动 `opening.js` 或 `build_openings.py` 后应跑它。
-  - `node tools/test_stability.js` —— 稳定性批次回归（对应规划文档 9.2 十条用例 + TrapCls 分类核心桩用例）：入门课 FEN 与任务判定（`Guide._steps`/`Guide._judge`）、胜负字段迁移（`Games.userResult`/`normWinner`）、损分视角（`Games._computeLosses`）、练习定时器取消、引擎调度器串行/优先级/取消/后台暂停、`CoachBrain._replay` 帧一致性、`TrapCls.classifyOne` 上当判定/三档分类。改动 guide/games/quiz/engine/coachbrain/trapcls-core 后应跑它。
+  - `node tools/test_opening_logic.js` —— `js/opening.js` 无头逻辑自测（用户节点统计、掌握度公式 50·coverage + 30·punishRate + 20·min(games/5,1)、谱更新修剪）+ spar.js 讲解层纯函数（谱分类/意图短语/快照/quietIntent/失误归因/⑬段 moveIntent 按子追踪语义）。改动 `opening.js`、`build_openings.py` 或 `spar.js` 讲解层后应跑它。
+  - `node tools/test_stability.js` —— 稳定性批次回归（对应规划文档 9.2 十条用例 + TrapCls 分类核心桩用例）：入门课 FEN 与任务判定（`Guide._steps`/`Guide._judge`）、胜负字段迁移（`Games.userResult`/`normWinner`）、损分视角（`Games._computeLosses`）、练习定时器取消、引擎调度器串行/优先级/取消/后台暂停、`CoachBrain._replay` 帧一致性、`TrapCls.classifyOne` 上当判定/三档分类。改动 guide/games/quiz/engine/coachbrain/trapcls-core/duel-core 后应跑它（含引擎长搜切片与调度器用例）。
+  - `node tools/test_play_flow.js` —— 对弈流程回归桩：无头跑通整盘（学前档不依赖引擎），覆盖 play/spar 的走子/应着/自然终局/存谱字段/悔棋重放/思考中悔棋被拒/重开会话守卫（旧应着不得落入新局）。改动 `duel-core.js`、`play.js`、`spar.js` 的对弈流程后应跑它。
 - `python -B tools/build_openings.py --check` —— 开局谱库校验（CI 式快速检查）。
   - `node tools/test_core_content.js` —— 核心路线内容复验 + Learn 状态分层/复习调度/buildPlan 规则回归。改动 `route.json`、`build_route.js`、`learn.js` 后应跑它。
   - `node tools/test_import_corpus.js` —— 棋谱导入容错语料回归（`data/copy/import_corpus.json`，parseGameText 断言逐例跑）。改动 `games.js` 的导入解析后应跑它。
